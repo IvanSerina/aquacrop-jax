@@ -96,6 +96,11 @@ def harvest_index_growth_coefficient(maximum_hi_pct, daily_rate_pct):
 def reference_harvest_index(day_after_planting, flowering_day,
                             maximum_hi_pct, daily_rate_pct,
                             grain_crop=True):
+    """Healthy-canopy reference HI; day is zero on Crop.Day1, as in Fortran.
+
+    Delayed germination, regrowth overrides and the recurrent canopy-driven
+    HIfinal restriction belong to the caller and are not represented here.
+    """
     day = jnp.asarray(day_after_planting, F64) - jnp.asarray(flowering_day, F64)
     maximum = jnp.asarray(maximum_hi_pct, F64)
     rate = jnp.asarray(daily_rate_pct, F64)
@@ -135,7 +140,11 @@ def reference_harvest_index(day_after_planting, flowering_day,
         grain_tail = at_switch + linear_rate * (day - switch_f)
         after_switch = jnp.where(jnp.asarray(grain_crop, jnp.bool_), grain_tail, logistic)
         value = jnp.where(day < switch_f, logistic, after_switch)
-        value = jnp.where(value >= 0.9799 * maximum, maximum, value)
+        # HarvestIndexDay applies this early plateau only to the logistic tail.
+        logistic_tail = jnp.logical_and(jnp.logical_not(jnp.asarray(grain_crop, jnp.bool_)),
+                                       day >= switch_f)
+        value = jnp.where(jnp.logical_and(logistic_tail, value >= 0.9799 * maximum),
+                          maximum, value)
         value = jnp.where(value <= 1.4, 0.0, value)
         value = jnp.where(maximum - value < 0.4, maximum, value)
         return jnp.where(day > 0.0, jnp.minimum(value, maximum), 0.0)

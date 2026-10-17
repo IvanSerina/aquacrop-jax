@@ -142,12 +142,14 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
             salinity_growing_mask=in_crop)
         crop_type = int(path('Crop').read_text().splitlines()[3].split(':', 1)[0])
         reproductive = crop_type in (2, 3)
+        # DetermineBiomassAndYield passes dayi - Crop.Day1 to HarvestIndexDay.
+        # The diagnostic/output DAP column remains one-based.
         production = run_production_trajectory(water.transpiration, potential.transpiration_mm,
-            eto, jnp.full(days.shape, co2), dap, value('Water Productivity normalized for ETo and CO2 (WP*)'),
+            eto, jnp.full(days.shape, co2), dap - 1, value('Water Productivity normalized for ETo and CO2 (WP*)'),
             value('Sink strength'), value('Calendar Days: from sowing to flowering'),
             value('Reference Harvest Index'), value('Reference Harvest Index') / value('Building up of Harvest Index'),
             value('Water Productivity normalized for ETo and CO2 during yield formation'),
-            reproductive_crop=reproductive, grain_crop=reproductive, initial_biomass=initial_biomass)
+            reproductive_crop=reproductive, grain_crop=(crop_type == 2), initial_biomass=initial_biomass)
         dates = [day_number_to_date(int(day)) for day in days]
         storage = np.sum(np.asarray(water.theta) * (1000. * dz * (1. - layer.gravel_volume / 100.)), axis=1)
         columns = dict(daynr=days, day=np.array([d.day for d in dates]),
