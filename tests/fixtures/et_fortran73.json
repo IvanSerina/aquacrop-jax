@@ -420,6 +420,33 @@
       "evaporation_mm": 5.5
     },
     {
+      "name": "before-half-percent-next-ulp-limit0",
+      "inputs": {
+        "day_after_planting": 1,
+        "emergence_day": 5,
+        "full_canopy_day": 30,
+        "senescence_day": 90,
+        "harvest_day": 120,
+        "last_cut_day": 0,
+        "delayed_days": 0,
+        "evaporation_limit": 0,
+        "canopy_cover": 0.005000000000000001,
+        "eto_mm": 5.0,
+        "maximum_crop_coefficient": 1.15,
+        "cumulative_crop_coefficient_decline_pct": 10.0,
+        "maximum_canopy_cover": 0.9,
+        "maximum_withered_canopy": 0.9,
+        "late_evaporation_effect_pct": 60.0,
+        "co2_ppm": 369.41,
+        "daily_gdd": 10.0,
+        "minimum_gdd_full_transpiration": 8.0,
+        "wet_bare_coefficient": 1.1,
+        "senescence_exponent": 2.5
+      },
+      "transpiration_mm": 0.0,
+      "evaporation_mm": 5.5
+    },
+    {
       "name": "before-above-half-percent-limit0",
       "inputs": {
         "day_after_planting": 1,
@@ -1106,6 +1133,33 @@
         "delayed_days": 0,
         "evaporation_limit": 1,
         "canopy_cover": 0.005,
+        "eto_mm": 5.0,
+        "maximum_crop_coefficient": 1.15,
+        "cumulative_crop_coefficient_decline_pct": 10.0,
+        "maximum_canopy_cover": 0.9,
+        "maximum_withered_canopy": 0.9,
+        "late_evaporation_effect_pct": 60.0,
+        "co2_ppm": 369.41,
+        "daily_gdd": 10.0,
+        "minimum_gdd_full_transpiration": 8.0,
+        "wet_bare_coefficient": 1.1,
+        "senescence_exponent": 2.5
+      },
+      "transpiration_mm": 0.0,
+      "evaporation_mm": 5.5
+    },
+    {
+      "name": "before-half-percent-next-ulp-limit1",
+      "inputs": {
+        "day_after_planting": 1,
+        "emergence_day": 5,
+        "full_canopy_day": 30,
+        "senescence_day": 90,
+        "harvest_day": 120,
+        "last_cut_day": 0,
+        "delayed_days": 0,
+        "evaporation_limit": 1,
+        "canopy_cover": 0.005000000000000001,
         "eto_mm": 5.0,
         "maximum_crop_coefficient": 1.15,
         "cumulative_crop_coefficient_decline_pct": 10.0,

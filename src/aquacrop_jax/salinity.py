@@ -11,6 +11,7 @@ import jax
 import jax.numpy as jnp
 
 from .canopy import temperature_stress
+from .rounding import round_fortran
 
 F64 = jnp.float64
 EQUIV = 0.64
@@ -33,12 +34,6 @@ class Conductivity(NamedTuple):
     ece: jax.Array
     ecsw: jax.Array
     ecsw_fc: jax.Array
-
-
-def round_fortran(value):
-    """utils.f90 roundc uses banker rounding at exact half-integers."""
-    value = jnp.asarray(value, F64)
-    return jnp.rint(value)
 
 
 def salt_geometry(saturation_pct, field_capacity_pct, ksat, diffusion_pct=20.0):

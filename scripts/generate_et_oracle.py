@@ -2,6 +2,7 @@
 from pathlib import Path
 import hashlib
 import json
+import math
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,6 +41,8 @@ def generate():
         ("bare", dict(canopy_cover=0.)),
         ("before-emergence", dict(day_after_planting=1, canopy_cover=0.)),
         ("before-half-percent", dict(day_after_planting=1, canopy_cover=.005)),
+        ("before-half-percent-next-ulp", dict(day_after_planting=1,
+            canopy_cover=math.nextafter(.005, 1.))),
         ("before-above-half-percent", dict(day_after_planting=1, canopy_cover=.00500000001)),
         ("after-harvest", dict(day_after_planting=121)),
         ("delayed-before-emergence", dict(day_after_planting=7, delayed_days=3, canopy_cover=.005)),

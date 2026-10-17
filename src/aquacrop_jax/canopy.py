@@ -7,6 +7,7 @@ from typing import NamedTuple
 import jax
 import jax.numpy as jnp
 
+from .rounding import round_fortran
 F64 = jnp.float64
 
 
@@ -53,9 +54,7 @@ def potential_canopy_gdd(cumulative_gdd, emergence_gdd, senescence_gdd,
         1.0 - 0.05 * jnp.expm1(
             (gdd - senescence) * 3.33 * adjusted_decline /
             (cover_at_senescence + 2.29)))
-    # roundc uses ties-to-even; salinity imports canopy, so keep this primitive
-    # here rather than introducing a circular import through round_fortran.
-    active = jnp.logical_and(gdd > 0.0, jnp.rint(gdd) <= maturity)
+    active = jnp.logical_and(gdd > 0.0, round_fortran(gdd) <= maturity)
     cover = jnp.where(gdd <= emergence, 0.0,
                       jnp.where(gdd < senescence, growing, declining))
     valid = jnp.logical_and(active, initial > 0.0)
@@ -126,7 +125,7 @@ def temperature_stress(lower_temperature, upper_temperature, temperature):
     response = jnp.where(increasing, bounded_increasing, bounded_decreasing)
     # KsTemperature bypasses undefined (-9 after roundc) or coincident limits.
     # ac_global::eps is initialized from a default-real literal (10E-08).
-    undefined = jnp.logical_or(jnp.rint(lower) == -9., jnp.rint(upper) == -9.)
+    undefined = jnp.logical_or(round_fortran(lower) == -9., round_fortran(upper) == -9.)
     bypass = jnp.logical_or(undefined,
         jnp.abs(lower - upper) <= jnp.asarray(jnp.float32(1e-7), F64))
     return jnp.where(bypass, 1.0,
@@ -161,7 +160,7 @@ def calculate_potential_et(
     kc *= jnp.where(co2 > 369.41,
                    1.0 - 0.05 * (co2 - 369.41) / (550.0 - 369.41), 1.0)
     gdd = jnp.asarray(daily_gdd, F64)
-    cold = jnp.where(jnp.logical_or(adjusted <= 1e-6, jnp.rint(gdd) < 0.0),
+    cold = jnp.where(jnp.logical_or(adjusted <= 1e-6, round_fortran(gdd) < 0.0),
                     1.0, temperature_stress(
                         0.0, minimum_gdd_full_transpiration, gdd))
     transpiration = adjusted * cold * kc * eto
@@ -191,7 +190,7 @@ def calculate_potential_et(
         dying, jnp.exp(jnp.asarray(senescence_exponent, F64) *
                        jnp.log(canopy / withered)), 1.0)
     outside = jnp.logical_or(
-        jnp.logical_and(day < emergence, jnp.rint(100.0 * canopy) == 0.0),
+        jnp.logical_and(day < emergence, round_fortran(100.0 * canopy) == 0.0),
         day > harvest)
     transpiration = jnp.where(outside, 0.0, transpiration)
     evaporation = jnp.where(outside, bare * eto, evaporation)
