@@ -66,9 +66,12 @@ upward while correcting interface fluxes. Unrounded native fixtures cover
 wet/dry fronts, adjusted FC, gravel and backflow, with daily mass conservation.
 Multihorizon soil profiles remain unsupported by the integrated runner.
 
-The first daily hydrology composition is available for the homogeneous Ottawa
-path: pre-infiltration drainage, SCS runoff, top-down saturation filling,
-`Ksat`-limited transfer, deep percolation and an end-of-step mass residual.
+Daily hydrology for the homogeneous Ottawa path couples pre-infiltration
+drainage, SCS runoff and native daily infiltration thresholds. Surface entry
+respects `Ksat`; subsequent transfer accounts for existing drainage fluxes,
+adjusted field capacity and upward redistribution of saturation excess.
+Every step reports its mass residual. Bund storage and non-daily rainfall
+redistribution remain outside this daily no-bund operator.
 
 The water-only recurrence can now be unrolled for an arbitrary daily rainfall
 tensor. It returns `theta[day, compartment]` and daily runoff, drainage,

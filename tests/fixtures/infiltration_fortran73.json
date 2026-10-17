@@ -1,0 +1,441 @@
+{
+  "source": "AquaCrop 7.3 calculate_Extra_runoff then calculate_infiltration; daily, no bunds",
+  "source_sha256": "2cdc1092d5867ed918c55ab60519fcab2f147a68348fe4af288d8906317e52d7",
+  "objects_sha256": {
+    "climprocessing.o": "5548eda651daba41f1efc2ce909669742c5030500af25405e02a3ef9083f2ad7",
+    "defaultcropsoil.o": "29e5330cb8edd2055bdc2e00599c78213ee6a7db3469c24062534122b4464032",
+    "global.o": "382c34f02db0d96318b1992aeb8c8788bade5b5cd240b863a2cc8ef668d00a4e",
+    "inforesults.o": "afa201dd9b7a5a3415b0eaa05e24e68acee361e173f91cc11c53750c1c33294d",
+    "initialsettings.o": "234185f2c21be401609a04c03f2605eb6b01e7e2a40cb9e35b6274ba700cd301",
+    "kinds.o": "4198d9ae5130b7c21fb252183a192ed57ba8413e77048695b4cfe971412f5407",
+    "preparefertilitysalinity.o": "03fe768b79456c42076e4f78dd5da13048991215b4eeb6811fab9a06e3439478",
+    "project_input.o": "ca7c96d422a50f3578a4ea2c03f16556a32a78738ff29ef4f2102ab2605b1184",
+    "rootunit.o": "573b5bb8d3ed5ba9fc5e1300f0cdcc6bc57e7d71f1f6ce72b79ded2799e89203",
+    "run.o": "e67973a4016ee4171a79b3f17374e9c54fc5cb7483ce5cad8def53b1fb8671dc",
+    "simul.o": "c9e5ba4e42994ea646d9e1af0f5fa7672d6bff87922c8f73e89ddf4bb5394234",
+    "startunit.o": "c387de9b64c8f0e46eddbbdf4b9a8c7e1d1b0a71fed4b27fe3085a513fa316c0",
+    "tempprocessing.o": "d58629fc4582c5f56fdb65e34ba34ecdc4d924a8a15ac27e76c35b4853479275",
+    "utils.o": "b9523e8e8a510994915a315a102e989afdc2df9d055d179e17b5320c0dfda586"
+  },
+  "cases": [
+    {
+      "name": "dry-fill",
+      "initial_theta": [
+        0.2,
+        0.2
+      ],
+      "thickness": [
+        0.1,
+        0.1
+      ],
+      "adjusted_fc": [
+        0.29,
+        0.29
+      ],
+      "initial_fluxout": [
+        0.0,
+        0.0
+      ],
+      "saturation_pct": 46.0,
+      "field_capacity_pct": 29.0,
+      "tau": 1.0,
+      "ksat": 1200.0,
+      "gravel_volume_pct": 0.0,
+      "water_mm": 30.0,
+      "theta": [
+        0.46,
+        0.24
+      ],
+      "fluxout": [
+        3.9999999999999982,
+        0.0
+      ],
+      "deep_percolation": 0.0,
+      "rejected": 0.0,
+      "accepted": 30.0,
+      "residual": 0.0
+    },
+    {
+      "name": "wet-top",
+      "initial_theta": [
+        0.4,
+        0.2
+      ],
+      "thickness": [
+        0.1,
+        0.1
+      ],
+      "adjusted_fc": [
+        0.29,
+        0.29
+      ],
+      "initial_fluxout": [
+        0.0,
+        0.0
+      ],
+      "saturation_pct": 46.0,
+      "field_capacity_pct": 29.0,
+      "tau": 1.0,
+      "ksat": 1200.0,
+      "gravel_volume_pct": 0.0,
+      "water_mm": 3.2,
+      "theta": [
+        0.4,
+        0.232
+      ],
+      "fluxout": [
+        3.2,
+        0.0
+      ],
+      "deep_percolation": 0.0,
+      "rejected": 0.0,
+      "accepted": 3.2,
+      "residual": 0.0
+    },
+    {
+      "name": "saturated",
+      "initial_theta": [
+        0.46,
+        0.46
+      ],
+      "thickness": [
+        0.1,
+        0.1
+      ],
+      "adjusted_fc": [
+        0.29,
+        0.29
+      ],
+      "initial_fluxout": [
+        0.0,
+        0.0
+      ],
+      "saturation_pct": 46.0,
+      "field_capacity_pct": 29.0,
+      "tau": 1.0,
+      "ksat": 1200.0,
+      "gravel_volume_pct": 0.0,
+      "water_mm": 8.0,
+      "theta": [
+        0.46,
+        0.46
+      ],
+      "fluxout": [
+        8.0,
+        8.0
+      ],
+      "deep_percolation": 8.0,
+      "rejected": 0.0,
+      "accepted": 8.0,
+      "residual": 0.0
+    },
+    {
+      "name": "surface-ksat",
+      "initial_theta": [
+        0.2,
+        0.2
+      ],
+      "thickness": [
+        0.1,
+        0.1
+      ],
+      "adjusted_fc": [
+        0.29,
+        0.29
+      ],
+      "initial_fluxout": [
+        0.0,
+        0.0
+      ],
+      "saturation_pct": 46.0,
+      "field_capacity_pct": 29.0,
+      "tau": 1.0,
+      "ksat": 1.0,
+      "gravel_volume_pct": 0.0,
+      "water_mm": 30.0,
+      "theta": [
+        0.21000000000000002,
+        0.2
+      ],
+      "fluxout": [
+        0.0,
+        0.0
+      ],
+      "deep_percolation": 0.0,
+      "rejected": 29.0,
+      "accepted": 1.0,
+      "residual": 0.0
+    },
+    {
+      "name": "existing-flux",
+      "initial_theta": [
+        0.35,
+        0.35
+      ],
+      "thickness": [
+        0.1,
+        0.1
+      ],
+      "adjusted_fc": [
+        0.29,
+        0.29
+      ],
+      "initial_fluxout": [
+        0.8,
+        0.8
+      ],
+      "saturation_pct": 46.0,
+      "field_capacity_pct": 29.0,
+      "tau": 1.0,
+      "ksat": 1.0,
+      "gravel_volume_pct": 0.0,
+      "water_mm": 2.0,
+      "theta": [
+        0.3594117647058823,
+        0.35055363321799304
+      ],
+      "fluxout": [
+        0.8588235294117648,
+        0.8034602076124568
+      ],
+      "deep_percolation": 0.0034602076124568004,
+      "rejected": 1.0,
+      "accepted": 1.0,
+      "residual": 5.995204332975845e-15
+    },
+    {
+      "name": "adjusted-fc",
+      "initial_theta": [
+        0.43,
+        0.4,
+        0.35
+      ],
+      "thickness": [
+        0.1,
+        0.15,
+        0.2
+      ],
+      "adjusted_fc": [
+        0.43,
+        0.43,
+        0.45
+      ],
+      "initial_fluxout": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "saturation_pct": 46.0,
+      "field_capacity_pct": 29.0,
+      "tau": 1.0,
+      "ksat": 1200.0,
+      "gravel_volume_pct": 0.0,
+      "water_mm": 15.0,
+      "theta": [
+        0.4414363828052622,
+        0.43,
+        0.3967818085973689
+      ],
+      "fluxout": [
+        13.856361719473776,
+        9.356361719473783,
+        0.0
+      ],
+      "deep_percolation": 0.0,
+      "rejected": 0.0,
+      "accepted": 15.0,
+      "residual": 0.0
+    },
+    {
+      "name": "slow-drainage",
+      "initial_theta": [
+        0.4,
+        0.2
+      ],
+      "thickness": [
+        0.1,
+        0.2
+      ],
+      "adjusted_fc": [
+        0.29,
+        0.29
+      ],
+      "initial_fluxout": [
+        0.0,
+        0.0
+      ],
+      "saturation_pct": 46.0,
+      "field_capacity_pct": 29.0,
+      "tau": 0.1,
+      "ksat": 100.0,
+      "gravel_volume_pct": 0.0,
+      "water_mm": 8.0,
+      "theta": [
+        0.46,
+        0.21000000000000002
+      ],
+      "fluxout": [
+        2.0000000000000018,
+        0.0
+      ],
+      "deep_percolation": 0.0,
+      "rejected": 0.0,
+      "accepted": 8.0,
+      "residual": 0.0
+    },
+    {
+      "name": "zero-tau",
+      "initial_theta": [
+        0.45,
+        0.2
+      ],
+      "thickness": [
+        0.1,
+        0.1
+      ],
+      "adjusted_fc": [
+        0.29,
+        0.29
+      ],
+      "initial_fluxout": [
+        0.0,
+        0.0
+      ],
+      "saturation_pct": 46.0,
+      "field_capacity_pct": 29.0,
+      "tau": 0.0,
+      "ksat": 1200.0,
+      "gravel_volume_pct": 0.0,
+      "water_mm": 30.0,
+      "theta": [
+        0.46,
+        0.2
+      ],
+      "fluxout": [
+        0.0,
+        0.0
+      ],
+      "deep_percolation": 0.0,
+      "rejected": 29.0,
+      "accepted": 1.0,
+      "residual": 0.0
+    },
+    {
+      "name": "gravel",
+      "initial_theta": [
+        0.4,
+        0.2
+      ],
+      "thickness": [
+        0.1,
+        0.15
+      ],
+      "adjusted_fc": [
+        0.29,
+        0.29
+      ],
+      "initial_fluxout": [
+        0.0,
+        0.0
+      ],
+      "saturation_pct": 46.0,
+      "field_capacity_pct": 29.0,
+      "tau": 1.0,
+      "ksat": 1200.0,
+      "gravel_volume_pct": 20.0,
+      "water_mm": 5.0,
+      "theta": [
+        0.4,
+        0.24166666666666667
+      ],
+      "fluxout": [
+        5.0,
+        0.0
+      ],
+      "deep_percolation": 0.0,
+      "rejected": 0.0,
+      "accepted": 5.0,
+      "residual": 0.0
+    },
+    {
+      "name": "no-water",
+      "initial_theta": [
+        0.35,
+        0.2
+      ],
+      "thickness": [
+        0.1,
+        0.1
+      ],
+      "adjusted_fc": [
+        0.29,
+        0.29
+      ],
+      "initial_fluxout": [
+        0.5,
+        0.5
+      ],
+      "saturation_pct": 46.0,
+      "field_capacity_pct": 29.0,
+      "tau": 1.0,
+      "ksat": 1200.0,
+      "gravel_volume_pct": 0.0,
+      "water_mm": 0.0,
+      "theta": [
+        0.35,
+        0.2
+      ],
+      "fluxout": [
+        0.5,
+        0.5
+      ],
+      "deep_percolation": 0.0,
+      "rejected": 0.0,
+      "accepted": 0.0,
+      "residual": 0.0
+    },
+    {
+      "name": "upward-rejection",
+      "initial_theta": [
+        0.46,
+        0.46,
+        0.46
+      ],
+      "thickness": [
+        0.1,
+        0.15,
+        0.2
+      ],
+      "adjusted_fc": [
+        0.29,
+        0.29,
+        0.29
+      ],
+      "initial_fluxout": [
+        0.2,
+        0.2,
+        0.2
+      ],
+      "saturation_pct": 46.0,
+      "field_capacity_pct": 29.0,
+      "tau": 0.2,
+      "ksat": 0.3,
+      "gravel_volume_pct": 0.0,
+      "water_mm": 20.0,
+      "theta": [
+        0.46,
+        0.46,
+        0.46
+      ],
+      "fluxout": [
+        0.200068695298194,
+        0.20006869529819168,
+        0.2000686952981885
+      ],
+      "deep_percolation": 6.869529818848141e-05,
+      "rejected": 19.999931304701803,
+      "accepted": 6.869529819580888e-05,
+      "residual": 7.105427357601002e-15
+    }
+  ]
+}
