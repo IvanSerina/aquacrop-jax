@@ -124,7 +124,12 @@ def temperature_stress(lower_temperature, upper_temperature, temperature):
     bounded_decreasing = jnp.where(value >= lower, 0.0,
                                    jnp.where(value <= upper, 1.0, coefficient))
     response = jnp.where(increasing, bounded_increasing, bounded_decreasing)
-    return jnp.where(jnp.abs(lower - upper) <= 1e-12, 1.0,
+    # KsTemperature bypasses undefined (-9 after roundc) or coincident limits.
+    # ac_global::eps is initialized from a default-real literal (10E-08).
+    undefined = jnp.logical_or(jnp.rint(lower) == -9., jnp.rint(upper) == -9.)
+    bypass = jnp.logical_or(undefined,
+        jnp.abs(lower - upper) <= jnp.asarray(jnp.float32(1e-7), F64))
+    return jnp.where(bypass, 1.0,
                      jnp.clip(response, 0.0, 1.0))
 
 
@@ -144,6 +149,7 @@ def calculate_potential_et(
         maximum_crop_coefficient, maximum_canopy_cover,
         maximum_withered_canopy, wet_bare_coefficient)]
     adjusted = jnp.clip(1.72 * canopy - canopy ** 2 + 0.30 * canopy ** 3, 0.0, 1.0)
+    adjusted = jnp.where(adjusted < jnp.finfo(F64).eps, 0.0, adjusted)
     denominator = harvest - full
     relative_time = jnp.where(denominator != 0.0,
                               (day - jnp.asarray(last_cut_day, F64) - full) / denominator, 0.0)
@@ -155,7 +161,7 @@ def calculate_potential_et(
     kc *= jnp.where(co2 > 369.41,
                    1.0 - 0.05 * (co2 - 369.41) / (550.0 - 369.41), 1.0)
     gdd = jnp.asarray(daily_gdd, F64)
-    cold = jnp.where(jnp.logical_or(adjusted <= 1e-12, jnp.floor(gdd + 0.5) < 0.0),
+    cold = jnp.where(jnp.logical_or(adjusted <= 1e-6, jnp.rint(gdd) < 0.0),
                     1.0, temperature_stress(
                         0.0, minimum_gdd_full_transpiration, gdd))
     transpiration = adjusted * cold * kc * eto
@@ -171,9 +177,11 @@ def calculate_potential_et(
     minimum_evaporation = jnp.maximum(
         bare * (1.0 - 1.72 * maximum + maximum ** 2 - 0.30 * maximum ** 3) * eto,
         0.0)
+    minimum_evaporation = jnp.where(
+        minimum_evaporation < jnp.finfo(F64).eps, 0.0, minimum_evaporation)
     late_evaporation = jnp.clip(
         late_evaporation, minimum_evaporation, maximum_evaporation)
-    evaporation = jnp.where(jnp.logical_and(day > senescence, maximum > 1e-12),
+    evaporation = jnp.where(jnp.logical_and(day > senescence, maximum > jnp.finfo(F64).eps),
                            late_evaporation, evaporation)
     evaporation = jnp.where(jnp.asarray(evaporation_limit, jnp.bool_),
                             jnp.minimum(evaporation, maximum_evaporation), evaporation)
@@ -183,7 +191,7 @@ def calculate_potential_et(
         dying, jnp.exp(jnp.asarray(senescence_exponent, F64) *
                        jnp.log(canopy / withered)), 1.0)
     outside = jnp.logical_or(
-        jnp.logical_and(day < emergence, jnp.floor(100.0 * canopy + 0.5) == 0.0),
+        jnp.logical_and(day < emergence, jnp.rint(100.0 * canopy) == 0.0),
         day > harvest)
     transpiration = jnp.where(outside, 0.0, transpiration)
     evaporation = jnp.where(outside, bare * eto, evaporation)
