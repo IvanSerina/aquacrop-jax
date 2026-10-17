@@ -60,10 +60,11 @@ profile-water storage kernel. Dynamic expansion reproduces the Fortran
 profile), and the daily water-balance residual is available as a float64 JAX
 diagnostic.
 
-The homogeneous-profile drainage path now propagates `fluxout` sequentially
-with a per-layer `Ksat` cap and exact mass conservation. The saturation
-backflow/multihorizon redistribution path is intentionally guarded until its
-Fortran branch has dedicated parity fixtures.
+The homogeneous-profile drainage path follows Fortran's drainability checks,
+stores incoming water in dry compartments, and redistributes `Ksat` excess
+upward while correcting interface fluxes. Unrounded native fixtures cover
+wet/dry fronts, adjusted FC, gravel and backflow, with daily mass conservation.
+Multihorizon soil profiles remain unsupported by the integrated runner.
 
 The first daily hydrology composition is available for the homogeneous Ottawa
 path: pre-infiltration drainage, SCS runoff, top-down saturation filling,

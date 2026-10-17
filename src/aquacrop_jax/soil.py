@@ -204,12 +204,12 @@ def theta_from_drainage(delta_theta, adjusted_fc, saturation_pct,
 @jax.jit
 def vertical_drainage(theta, thickness, gravel_volume_pct, adjusted_fc,
                       saturation_pct, field_capacity_pct, tau, ksat):
-    """Propagate drainage through a homogeneous compartment column.
+    """Fortran calculate_drainage for one homogeneous soil layer.
 
-    This is the single-soil-layer path used by Ottawa. Water released by a
-    compartment joins the incoming flux; `ksat` limits each outgoing flux.
-    The returned bottom flux is profile drainage. Cases requiring saturation
-    backflow are rejected until the multihorizon redistribution port lands.
+    Incoming drainage can refill a dry compartment before moving farther down.
+    The drainability test uses the depth above the current compartment, and
+    Ksat excess is redistributed upward with corresponding flux corrections.
+    Geometry and state shapes remain static under jit and scan.
     """
     theta = jnp.asarray(theta, F64)
     thickness = jnp.asarray(thickness, F64)
@@ -217,19 +217,77 @@ def vertical_drainage(theta, thickness, gravel_volume_pct, adjusted_fc,
     adjusted_fc = jnp.asarray(adjusted_fc, F64)
     capacity = 1000.0 * thickness * (1.0 - gravel)
     saturation = jnp.asarray(saturation_pct, F64)
+    theta_sat = saturation / 100.0
     field_capacity = jnp.asarray(field_capacity_pct, F64)
     tau = jnp.asarray(tau, F64)
     ksat = jnp.asarray(ksat, F64)
 
-    def body(incoming, values):
-        current, current_capacity, current_fc = values
-        delta = drainage_delta(current, current_fc, saturation,
-                               field_capacity, tau)
-        released = delta * current_capacity
-        outgoing = jnp.minimum(incoming + released, ksat)
-        updated = (current * current_capacity + incoming - outgoing) / current_capacity
-        return outgoing, (updated, outgoing)
+    previous_depth = jnp.cumsum(thickness) - thickness
 
-    bottom, (output_theta, output_flux) = jax.lax.scan(
-        body, jnp.asarray(0.0, F64), (theta, capacity, adjusted_fc))
-    return output_theta, output_flux, bottom
+    def body(index, state):
+        profile, flux, incoming = state
+        current, current_capacity, current_fc = profile[index], capacity[index], adjusted_fc[index]
+        previous_capacity = 1000.0 * previous_depth[index] * (1.0 - gravel[index])
+        delta = jnp.where(current > current_fc,
+                          drainage_delta(current, current_fc, saturation, field_capacity, tau), 0.0)
+        drainmax = delta * previous_capacity
+
+        def drainable(_):
+            return current - delta, incoming + delta * current_capacity, jnp.asarray(0.0, F64)
+
+        def restricted(_):
+            average_delta = incoming / jnp.where(previous_capacity > 0.0, previous_capacity, 1.0)
+            theta_x = theta_from_drainage(average_delta, current_fc, saturation, field_capacity, tau)
+            filled = current + incoming / current_capacity
+
+            def drain_filled(_):
+                release = jnp.where(filled > current_fc,
+                    drainage_delta(filled, current_fc, saturation, field_capacity, tau), 0.0)
+                return filled - release, release * current_capacity, jnp.asarray(0.0, F64)
+
+            def below_saturation(_):
+                def above_theta_x(_):
+                    release = drainage_delta(theta_x, current_fc, saturation, field_capacity, tau)
+                    outgoing = (filled - theta_x + release) * current_capacity
+                    return theta_x - release, outgoing, jnp.asarray(0.0, F64)
+                return jax.lax.cond(filled > theta_x, above_theta_x, drain_filled, operand=None)
+
+            def limited_by_saturation(_):
+                def saturated(_):
+                    excess = (filled - theta_sat) * current_capacity
+                    release = drainage_delta(filled, current_fc, saturation, field_capacity, tau)
+                    transmitted = jnp.minimum(release * previous_capacity, excess)
+                    return (theta_sat - release, transmitted + release * current_capacity,
+                            excess - transmitted)
+                return jax.lax.cond(filled > theta_sat, saturated, drain_filled, operand=None)
+
+            return jax.lax.cond(theta_x <= theta_sat, below_saturation,
+                                limited_by_saturation, operand=None)
+
+        updated, outgoing, excess = jax.lax.cond(incoming <= drainmax, drainable,
+                                                 restricted, operand=None)
+        # CheckDrainsum adds to excess already produced by the saturation branch.
+        excess += jnp.maximum(outgoing - ksat, 0.0)
+        outgoing = jnp.minimum(outgoing, ksat)
+        profile = profile.at[index].set(updated)
+        flux = flux.at[index].set(outgoing)
+
+        def redistribute(offset, carry):
+            def active(values):
+                profile, flux, excess = values
+                previous = index - offset
+                corrected = jnp.where(previous < index, flux[previous] - excess, flux[previous])
+                flux = flux.at[previous].set(corrected)
+                filled = profile[previous] + excess / capacity[previous]
+                excess = jnp.maximum((filled - theta_sat) * capacity[previous], 0.0)
+                profile = profile.at[previous].set(jnp.minimum(filled, theta_sat))
+                excess = jnp.where(excess < jnp.finfo(F64).eps, 0.0, excess)
+                return profile, flux, excess
+            return jax.lax.cond(jnp.logical_and(offset <= index, carry[2] > 0.0),
+                                active, lambda values: values, carry)
+
+        profile, flux, _ = jax.lax.fori_loop(0, theta.shape[0], redistribute, (profile, flux, excess))
+        return profile, flux, outgoing
+
+    return jax.lax.fori_loop(0, theta.shape[0], body,
+        (theta, jnp.zeros_like(theta), jnp.asarray(0.0, F64)))
