@@ -59,8 +59,15 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
             raise NotImplementedError('Coupled runner requires a homogeneous soil profile')
         layer = soil.layers[0]
         crop = read_annotated_values(path('Crop'))
+        crop_type = int(path('Crop').read_text().splitlines()[3].split(':', 1)[0])
         value = lambda prefix: _parameter(crop, prefix)
         zmin, zmax = value('Minimum effective rooting depth'), value('Maximum effective rooting depth')
+        if crop_type == 4:
+            # LoadSimulationRun calls AdjustYearPerennials before root expansion.
+            # Older crop files default RootMinYear1 to their ordinary RootMin.
+            first_year_min = next((float(v) for key, v in crop.items()
+                if key.startswith('Minimum effective rooting depth (m) in first year')), zmin)
+            zmin = first_year_min if run.cultivation_year == 1 else zmax
         profile = resize_for_root_depth(soil, discretize_profile(soil), zmax)
         dz = np.asarray(profile.thickness)
         days = np.arange(run.simulation_first_day, run.simulation_last_day + 1)
@@ -140,7 +147,6 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
             salt_stomatal_coefficients=salt_stomatal_coefficients,
             potential_evaporation=potential.evaporation_mm,
             salinity_growing_mask=in_crop)
-        crop_type = int(path('Crop').read_text().splitlines()[3].split(':', 1)[0])
         reproductive = crop_type in (2, 3)
         # DetermineBiomassAndYield passes dayi - Crop.Day1 to HarvestIndexDay.
         # The diagnostic/output DAP column remains one-based.

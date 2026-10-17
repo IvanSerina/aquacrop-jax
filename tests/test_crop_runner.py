@@ -24,6 +24,10 @@ def test_ottawa_integrated_trace_covers_all_runs_and_balances(tmp_path):
     assert max(abs(float(row['residual'])) for row in rows) < 1e-9
     assert all(float(row['salt_residual']) == 0. for row in rows)
     assert all(float(row['salt_g_m2']) == 0. for row in rows)
+    # Native AdjustYearPerennials sets RootMin=RootMax for regrowing forage.
+    regrowing = [row for row in rows if int(row['run']) > 1 and int(row['dap']) > 0]
+    assert regrowing
+    assert all(float(row['root_depth']) == 3. for row in regrowing)
     report = compare_trace_to_daily(output, TESTCASE / 'OUTP_REF/OttawaPRMday.OUT')
     assert report['matched_days'] == 892
     assert report['missing_days'] == report['extra_days'] == []
