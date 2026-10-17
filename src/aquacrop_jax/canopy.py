@@ -7,7 +7,6 @@ from typing import NamedTuple
 import jax
 import jax.numpy as jnp
 
-
 F64 = jnp.float64
 
 
@@ -54,12 +53,15 @@ def potential_canopy_gdd(cumulative_gdd, emergence_gdd, senescence_gdd,
         1.0 - 0.05 * jnp.expm1(
             (gdd - senescence) * 3.33 * adjusted_decline /
             (cover_at_senescence + 2.29)))
-    active = jnp.logical_and(gdd > 0.0, jnp.floor(gdd + 0.5) <= maturity)
+    # roundc uses ties-to-even; salinity imports canopy, so keep this primitive
+    # here rather than introducing a circular import through round_fortran.
+    active = jnp.logical_and(gdd > 0.0, jnp.rint(gdd) <= maturity)
     cover = jnp.where(gdd <= emergence, 0.0,
                       jnp.where(gdd < senescence, growing, declining))
     valid = jnp.logical_and(active, initial > 0.0)
     valid = jnp.logical_and(valid, jnp.logical_or(
-        gdd < senescence, maximum >= 0.001))
+        gdd < senescence, jnp.logical_and(
+            maximum >= 0.001, cover_at_senescence >= 0.001)))
     return jnp.where(valid, jnp.clip(cover, 0.0, 1.0), 0.0)
 
 
@@ -94,7 +96,15 @@ def potential_canopy_calendar(day_after_planting, emergence_day,
                       jnp.where(day < senescence, growing, declining))
     active = jnp.logical_and(day >= 1.0, day <= maturity)
     valid = jnp.logical_and(active, initial > jnp.finfo(F64).eps)
-    return jnp.where(valid, jnp.clip(cover, 0.0, 1.0), 0.0)
+    # Unlike the GDD routine, DaysSF spells this literal without _dp.
+    threshold = jnp.asarray(jnp.float32(0.001), F64)
+    valid = jnp.logical_and(valid, jnp.logical_or(
+        day < senescence, jnp.logical_and(
+            maximum >= threshold, cover_at_senescence >= threshold)))
+    # Calendar mode removes sub-epsilon cover; the GDD routine only clips < 0.
+    cover = jnp.where(cover < jnp.finfo(F64).eps, 0.0,
+                      jnp.minimum(cover, 1.0))
+    return jnp.where(valid, cover, 0.0)
 
 
 def temperature_stress(lower_temperature, upper_temperature, temperature):
