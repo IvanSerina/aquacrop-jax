@@ -34,6 +34,8 @@ def test_ottawa_integrated_trace_covers_all_runs_and_balances(tmp_path):
     for name in ('rain', 'eto', 'tmin', 'tmax', 'co2', 'rootzone_ece'):
         assert report['columns'][name]['max_abs'] == 0.
     assert report['columns']['gdd']['max_abs'] <= .05000000001
+    # Native daily root depth is printed to 0.01 m, including all three years.
+    assert report['columns']['root_depth']['max_abs'] <= .005000000001
     # Explicitly record incomplete physics, without turning diagnostic success into parity.
     metadata = json.loads(output.with_suffix('.json').read_text())
     assert metadata['legacy_out_parity'] is False
