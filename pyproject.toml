@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aquacrop-jax"
+version = "0.1.0"
+description = "JAX port of AquaCrop with legacy file compatibility"
+requires-python = ">=3.10"
+dependencies = ["jax>=0.7,<0.8", "numpy>=2.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+aquacrop-jax = "aquacrop_jax.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
