@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+source "$(dirname "${BASH_SOURCE[0]}")/cpu-env.sh"
+exec "$AQUACROP_PYTHON" "$aquacrop_root/tools/workflow.py" failure-gate "$@"
