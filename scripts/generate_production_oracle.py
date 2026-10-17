@@ -22,7 +22,8 @@ def generate():
                str(ROOT / "scripts/production_probe.c"), *map(str, objects), "-l:libgfortran.so.5", "-lm"]
     subprocess.run(command, check=True)
     cases = []
-    for maximum, rate, flowering in [(50, 1., 10), (60, 1.5, 5), (50, .25, 10), (50, 100., 10)]:
+    for maximum, rate, flowering in [(50, 1., 10), (60, 1.5, 5), (50, .25, 10),
+                                      (50, 100., 10), (50, 4., 10), (50, 20., 10)]:
         days = list(range(flowering - 1, flowering + int(maximum / rate + .5) + 6))
         for kind in (1, 2, 3, 4):
             text = f"{kind} {maximum} {rate:.17g} {flowering} {len(days)}\n" + " ".join(map(str, days)) + "\n"

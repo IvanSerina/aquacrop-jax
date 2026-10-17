@@ -8,6 +8,8 @@ import jax
 import jax.numpy as jnp
 from jax import lax
 
+from .salinity import round_fortran
+
 F64 = jnp.float64
 CO2_REFERENCE = jnp.asarray(369.41, F64)
 
@@ -58,7 +60,7 @@ def daily_water_productivity(
     flowering = jnp.asarray(flowering_day, F64)
     hi = jnp.asarray(reference_harvest_index_pct, F64)
     rate = jnp.asarray(harvest_index_rate_pct_day, F64)
-    formation_days = jnp.floor(jnp.where(rate != 0.0, hi / rate, 0.0) + 0.5)
+    formation_days = round_fortran(jnp.where(rate != 0.0, hi / rate, 0.0))
     after_flowering = day - flowering
     third = formation_days / 3.0
     switch = jnp.where(jnp.logical_and(formation_days > 0.0,
@@ -110,7 +112,7 @@ def reference_harvest_index(day_after_planting, flowering_day,
 
     def developed(_):
         coefficient = harvest_index_growth_coefficient(maximum, rate)
-        maximum_day = jnp.asarray(jnp.floor(maximum / rate + 0.5), jnp.int32)
+        maximum_day = jnp.asarray(round_fortran(maximum / rate), jnp.int32)
 
         def condition(state):
             index, _, _, done = state

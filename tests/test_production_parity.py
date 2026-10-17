@@ -14,7 +14,8 @@ import pytest
 
 from aquacrop_jax.crop_runner import simulate_project
 from aquacrop_jax.legacy import Project, read_project
-from aquacrop_jax.production import reference_harvest_index, run_production_trajectory
+from aquacrop_jax.production import (daily_water_productivity, reference_harvest_index,
+                                     run_production_trajectory)
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = json.loads((ROOT / "tests/fixtures/production_hi_fortran73.json").read_text())
@@ -27,6 +28,15 @@ def case_id(case):
 
 HI_VECTOR = jax.vmap(reference_harvest_index, in_axes=(0, None, None, None, None))
 HI_COMPILED = jax.jit(HI_VECTOR)
+
+
+def test_reproductive_wp_transition_uses_native_half_even_duration():
+    # Native roundc(50 / 4) = 12, so one day into formation is 1 / (12 / 3).
+    # This fixture's native HI is already positive, enabling the Fortran WP switch.
+    case = next(c for c in CASES if c["crop_file_kind"] == 2 and c["daily_hi_rate_pct"] == 4.)
+    assert next(r["hi"] for r in case["records"] if r["dap"] == 11) > 0.
+    result = daily_water_productivity(15., 369.41, 100., 11., 10., 50., 4., 50.)
+    assert float(result) == pytest.approx(.13125, abs=1e-12)
 
 
 @jax.jit
