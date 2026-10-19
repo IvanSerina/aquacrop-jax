@@ -54,6 +54,87 @@ class WaterCropTrajectory(NamedTuple):
     salinity_stomatal_reduction_pct: jax.Array
 
 
+class WaterCropPreET(NamedTuple):
+    """Daily state after infiltration, capillary rise and salt transport."""
+
+    theta: jax.Array
+    salt: SaltState
+    water: object
+    begin_water_mm: jax.Array
+    begin_salt_g_m2: jax.Array
+    groundwater_inflow_mm: jax.Array
+    capillary_rise_mm: jax.Array
+    salt_infiltrated_g_m2: jax.Array
+    salt_drained_g_m2: jax.Array
+    salt_groundwater_g_m2: jax.Array
+
+
+def water_crop_pre_et_step(
+        current_theta, salt, rain_day, irrigation_day, groundwater_day,
+        groundwater_ec_day, irrigation_ec_day, *, thickness, gravel_volume_pct,
+        saturation_pct, field_capacity_pct, wilting_point_pct, adjusted_fc,
+        tau, ksat, curve_number, initial_abstraction_pct, capillary_enabled,
+        cap_a, cap_b, salt_enabled, geometry, salt_solubility):
+    """Apply the water and salt part of one day, before canopy and ET.
+
+    Inputs and outputs are JAX pytrees with static compartment/cell shapes.
+    The returned soil and salt state is the one used by the Fortran canopy
+    step, before evaporation and root extraction modify it.
+    """
+    salt_begin = jnp.sum(salt.dissolved + salt.deposited)
+    begin = profile_water_mm(current_theta, thickness, gravel_volume_pct)
+    saturated_theta = saturate_below_water_table(
+        current_theta, thickness, saturation_pct, groundwater_day)
+    groundwater_inflow = profile_water_mm(
+        saturated_theta, thickness, gravel_volume_pct) - begin
+    daily_adjusted_fc = adjusted_field_capacity(
+        thickness, field_capacity_pct, saturation_pct,
+        groundwater_day) / 100.0
+    water = daily_water_step_irrigated(
+        saturated_theta, thickness, gravel_volume_pct,
+        jnp.where(groundwater_day >= 0.0, daily_adjusted_fc, adjusted_fc),
+        saturation_pct, field_capacity_pct, tau, ksat, rain_day,
+        irrigation_day,
+        curve_number, initial_abstraction_pct)
+    if capillary_enabled:
+        capillary = capillary_rise(
+            water.theta, thickness, gravel_volume_pct,
+            jnp.where(groundwater_day >= 0.0,
+                      daily_adjusted_fc * 100.0,
+                      jnp.asarray(adjusted_fc, F64) * 100.0),
+            field_capacity_pct, wilting_point_pct, ksat, cap_a, cap_b,
+            groundwater_day)
+        water_theta = capillary.theta
+        capillary_mm = capillary.water_mm
+    else:
+        water_theta = water.theta
+        capillary_mm = jnp.asarray(0.0, F64)
+    salt_in = salt_out = salt_gw = jnp.asarray(0.0, F64)
+    if salt_enabled:
+        added_water = (water_theta - water.theta) * (1000.0 * jnp.asarray(thickness, F64) *
+            (1.0 - jnp.asarray(gravel_volume_pct, F64) / 100.0))
+        added_water += (saturated_theta - current_theta) * (1000.0 * jnp.asarray(thickness, F64) *
+            (1.0 - jnp.asarray(gravel_volume_pct, F64) / 100.0))
+        salt_added = added_water * groundwater_ec_day * EQUIV
+        active = active_cells(water_theta, geometry)
+        salt = SaltState(salt.dissolved + jnp.where(
+            jnp.arange(11) == active[:, None], salt_added[:, None], 0.0), salt.deposited)
+        salt_gw = jnp.sum(salt_added)
+        # Legacy extra-runoff logic gives irrigation priority over rainfall.
+        scs_infiltration = jnp.maximum(rain_day + irrigation_day - water.runoff, 0.0)
+        accepted_irrigation = jnp.minimum(irrigation_day, scs_infiltration)
+        salt_step = salt_transport_step(salt, water_theta, water.fluxout,
+            thickness, gravel_volume_pct, saturation_pct, field_capacity_pct, geometry,
+            infiltrated_rain=scs_infiltration - accepted_irrigation,
+            infiltrated_irrigation=accepted_irrigation,
+            irrigation_ec=irrigation_ec_day, solubility=salt_solubility)
+        salt = salt_step.state
+        salt_in, salt_out = salt_step.infiltrated_g_m2, salt_step.drained_g_m2
+    return WaterCropPreET(water_theta, salt, water, begin, salt_begin,
+                          groundwater_inflow, capillary_mm, salt_in, salt_out,
+                          salt_gw)
+
+
 def run_water_crop_trajectory(
         initial_theta, rain, eto, rooting_depth, potential_transpiration,
         thickness, gravel_volume_pct, adjusted_fc, saturation_pct,
@@ -135,55 +216,19 @@ def run_water_crop_trajectory(
          salt_growing_days, mean_salt_stress) = carry
         (rain_day, eto_day, root_day, tpot_day, irrigation_day,
          groundwater_day, irrigation_ec_day, groundwater_ec_day, epot_day, growing_day) = forcing
-        salt_begin = jnp.sum(salt.dissolved + salt.deposited)
-        begin = profile_water_mm(current_theta, thickness, gravel_volume_pct)
-        saturated_theta = saturate_below_water_table(
-            current_theta, thickness, saturation_pct, groundwater_day)
-        groundwater_inflow = profile_water_mm(
-            saturated_theta, thickness, gravel_volume_pct) - begin
-        daily_adjusted_fc = adjusted_field_capacity(
-            thickness, field_capacity_pct, saturation_pct,
-            groundwater_day) / 100.0
-        water = daily_water_step_irrigated(
-            saturated_theta, thickness, gravel_volume_pct,
-            jnp.where(groundwater_day >= 0.0, daily_adjusted_fc, adjusted_fc),
-            saturation_pct, field_capacity_pct, tau, ksat, rain_day,
-            irrigation_day,
-            curve_number, initial_abstraction_pct)
-        if capillary_enabled:
-            capillary = capillary_rise(
-                water.theta, thickness, gravel_volume_pct,
-                jnp.where(groundwater_day >= 0.0,
-                          daily_adjusted_fc * 100.0,
-                          jnp.asarray(adjusted_fc, F64) * 100.0),
-                field_capacity_pct, wilting_point_pct, ksat, cap_a, cap_b,
-                groundwater_day)
-            water_theta = capillary.theta
-            capillary_mm = capillary.water_mm
-        else:
-            water_theta = water.theta
-            capillary_mm = jnp.asarray(0.0, F64)
-        salt_in = salt_out = salt_gw = jnp.asarray(0.0, F64)
-        if salt_enabled:
-            added_water = (water_theta - water.theta) * (1000.0 * jnp.asarray(thickness, F64) *
-                (1.0 - jnp.asarray(gravel_volume_pct, F64) / 100.0))
-            added_water += (saturated_theta - current_theta) * (1000.0 * jnp.asarray(thickness, F64) *
-                (1.0 - jnp.asarray(gravel_volume_pct, F64) / 100.0))
-            salt_added = added_water * groundwater_ec_day * EQUIV
-            active = active_cells(water_theta, geometry)
-            salt = SaltState(salt.dissolved + jnp.where(
-                jnp.arange(11) == active[:, None], salt_added[:, None], 0.0), salt.deposited)
-            salt_gw = jnp.sum(salt_added)
-            # Legacy extra-runoff logic gives irrigation priority over rainfall.
-            scs_infiltration = jnp.maximum(rain_day + irrigation_day - water.runoff, 0.0)
-            accepted_irrigation = jnp.minimum(irrigation_day, scs_infiltration)
-            salt_step = salt_transport_step(salt, water_theta, water.fluxout,
-                thickness, gravel_volume_pct, saturation_pct, field_capacity_pct, geometry,
-                infiltrated_rain=scs_infiltration - accepted_irrigation,
-                infiltrated_irrigation=accepted_irrigation,
-                irrigation_ec=irrigation_ec_day, solubility=salt_solubility)
-            salt = salt_step.state
-            salt_in, salt_out = salt_step.infiltrated_g_m2, salt_step.drained_g_m2
+        pre_et = water_crop_pre_et_step(
+            current_theta, salt, rain_day, irrigation_day, groundwater_day,
+            groundwater_ec_day, irrigation_ec_day, thickness=thickness,
+            gravel_volume_pct=gravel_volume_pct, saturation_pct=saturation_pct,
+            field_capacity_pct=field_capacity_pct,
+            wilting_point_pct=wilting_point_pct, adjusted_fc=adjusted_fc,
+            tau=tau, ksat=ksat, curve_number=curve_number,
+            initial_abstraction_pct=initial_abstraction_pct,
+            capillary_enabled=capillary_enabled, cap_a=cap_a, cap_b=cap_b,
+            salt_enabled=salt_enabled, geometry=geometry,
+            salt_solubility=salt_solubility)
+        (water_theta, salt, water, begin, salt_begin, groundwater_inflow,
+         capillary_mm, salt_in, salt_out, salt_gw) = pre_et
         salt_reduction = jnp.asarray(0.0, F64)
         if salt_stomatal_coefficients is not None:
             before_et_ec = compartment_conductivity(salt, water_theta, thickness,

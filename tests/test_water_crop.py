@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
+import jax
+import jax.numpy as jnp
+from jax import lax
 
-from aquacrop_jax.water_crop import run_water_crop_trajectory
+from aquacrop_jax.salinity import initialize_salt, salt_geometry
+from aquacrop_jax.soil import profile_water_mm
+from aquacrop_jax.water_crop import (run_water_crop_trajectory,
+                                     water_crop_pre_et_step)
 
 
 def _trajectory(theta, rain, root, tpot):
@@ -124,3 +130,51 @@ def test_salinity_stress_average_survives_recurrent_restart():
     assert np.asarray(full.salinity_stomatal_reduction_pct) == pytest.approx([43., 0., 43.])
     np.testing.assert_allclose(last.theta, full.theta[1:], atol=1e-12)
     np.testing.assert_allclose(last.mean_salinity_stress_pct, full.mean_salinity_stress_pct[1:], atol=1e-12)
+
+
+def test_pre_et_boundary_conserves_water_and_salt_with_twelve_compartments():
+    thickness = jnp.full((12,), 0.1, jnp.float64)
+    gravel = jnp.zeros((12,), jnp.float64)
+    saturation = 46.0
+    field_capacity = 29.0
+    ksat = 1200.0
+    geometry = salt_geometry(jnp.full((12,), saturation, jnp.float64),
+                             jnp.full((12,), field_capacity, jnp.float64),
+                             jnp.full((12,), ksat, jnp.float64), 20.0)
+    theta = jnp.full((12,), 0.25, jnp.float64)
+    salt = initialize_salt(1.0, theta, thickness, gravel, saturation, geometry, 100.0)
+
+    def step(carry, forcing):
+        current_theta, current_salt = carry
+        rain, irrigation, irrigation_ec = forcing
+        pre = water_crop_pre_et_step(
+            current_theta, current_salt, rain, irrigation, -1.0, 0.0,
+            irrigation_ec, thickness=thickness, gravel_volume_pct=gravel,
+            saturation_pct=saturation, field_capacity_pct=field_capacity,
+            wilting_point_pct=13.0,
+            adjusted_fc=jnp.full((12,), field_capacity / 100.0, jnp.float64),
+            tau=1.0, ksat=ksat, curve_number=46,
+            initial_abstraction_pct=5.0, capillary_enabled=False,
+            cap_a=jnp.zeros_like(theta), cap_b=jnp.zeros_like(theta),
+            salt_enabled=True, geometry=geometry, salt_solubility=100.0)
+        return (pre.theta, pre.salt), pre
+
+    forcing = (jnp.asarray([0.0, 2.0]), jnp.asarray([10.0, 0.0]),
+               jnp.asarray([5.0, 0.0]))
+    _, outputs = jax.jit(lambda: lax.scan(step, (theta, salt), forcing))()
+    assert outputs.theta.shape == (2, 12)
+    assert outputs.salt.dissolved.shape == (2, 12, 11)
+    water_before = jnp.concatenate((profile_water_mm(theta, thickness, gravel)[None],
+                                    jax.vmap(profile_water_mm, in_axes=(0, None, None))(
+                                        outputs.theta[:-1], thickness, gravel)))
+    water_after = jax.vmap(profile_water_mm, in_axes=(0, None, None))(
+        outputs.theta, thickness, gravel)
+    water_residual = water_before + forcing[0] + forcing[1] - outputs.water.runoff - \
+        outputs.water.drainage - water_after
+    salt_before = jnp.concatenate((jnp.sum(salt.dissolved + salt.deposited)[None],
+        jnp.sum(outputs.salt.dissolved[:-1] + outputs.salt.deposited[:-1], axis=(1, 2))))
+    salt_after = jnp.sum(outputs.salt.dissolved + outputs.salt.deposited, axis=(1, 2))
+    salt_residual = salt_before + outputs.salt_infiltrated_g_m2 - \
+        outputs.salt_drained_g_m2 - salt_after
+    np.testing.assert_allclose(water_residual, 0.0, rtol=0.0, atol=1e-9)
+    np.testing.assert_allclose(salt_residual, 0.0, rtol=0.0, atol=1e-9)
