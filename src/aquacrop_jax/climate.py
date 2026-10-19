@@ -6,6 +6,7 @@ import csv
 from datetime import date, timedelta
 from pathlib import Path
 
+from jax import lax
 import jax.numpy as jnp
 import numpy as np
 
@@ -14,6 +15,31 @@ from .legacy import FileReference, Project, read_annotated_values, read_climate_
 
 
 EPOCH = date(1901, 1, 1)
+
+
+def calendar_days_for_gdd(daily_gdd, target_gdd):
+    """Daily-temperature branch of ``SumCalendarDays`` (days include sowing).
+
+    ``daily_gdd`` starts on the event's first day.  The Fortran routine
+    subtracts each day's GDD until the remaining threshold is nonpositive,
+    returns zero for a nonpositive target, and -9 if the record ends first.
+    """
+    daily = jnp.asarray(daily_gdd, jnp.float64)
+    if daily.ndim != 1:
+        raise ValueError('daily_gdd must be a one-dimensional daily series')
+    target = jnp.asarray(target_gdd, jnp.float64)
+
+    def step(carry, gdd):
+        remaining, count, reached = carry
+        active = ~reached
+        remaining = jnp.where(active, remaining - gdd, remaining)
+        count = count + active.astype(jnp.int32)
+        return (remaining, count, reached | (remaining <= 0.0)), None
+
+    (_, count, reached), _ = lax.scan(
+        step, (target, jnp.asarray(0, jnp.int32), target <= 0.0), daily)
+    return jnp.where(target <= 0.0, 0,
+                     jnp.where(reached, count, -9))
 
 
 def date_to_day_number(value: date) -> int:

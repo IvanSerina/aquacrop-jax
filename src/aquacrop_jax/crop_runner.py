@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import json
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 from jax import lax
@@ -16,13 +17,15 @@ import jax.numpy as jnp
 import numpy as np
 
 from .canopy import calculate_potential_et, potential_canopy_gdd
-from .climate import _reference, _slice, day_number_to_date
+from .climate import (_reference, _slice, calendar_days_for_gdd,
+                      date_to_day_number, day_number_to_date)
 from .kernels import degrees_day
 from .legacy import Project, read_annotated_values, read_climate_series
 from .legacy_inputs import (co2_for_period, groundwater_forcing,
                             initial_conditions, manual_irrigation_forcing)
 from .production import run_production_trajectory
 from .roots import actual_rooting_depth_gdd
+from .rounding import round_fortran
 from .salinity import SaltState
 from .soil import (discretize_profile, drainage_tau, read_soil_profile,
                    resize_for_root_depth)
@@ -81,7 +84,9 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
                 run.simulation_first_day, run.simulation_last_day, role))
 
         rain, eto = climate('Rain', 1)[:, 0], climate('Reference ET', 1)[:, 0]
-        temperature = climate('Temperature', 2)
+        temperature_record = read_climate_series(path('Temperature'), 2)
+        temperature = np.asarray(_slice(temperature_record, run.simulation_first_day,
+                                        run.simulation_last_day, 'Temperature'))
         gdd = degrees_day(value('Base temperature'), value('Upper temperature'),
                           temperature[:, 0], temperature[:, 1], 3)
         cumulative = jnp.cumsum(jnp.where(in_crop, gdd, 0.0))
@@ -113,15 +118,35 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
             zmin, zmax, value('Shape factor describing root zone expansion'))
         initial_cover = value('Soil surface covered by an individual seedling') * value('Number of plants per hectare') / 1e8
         maximum_cover = value('Maximum canopy cover')
+        # AdjustCalendarCrop converts GDD milestones with the actual daily
+        # temperature record, starting on Crop.Day1.  Calendar values in the
+        # CRO file are defaults and are not the loaded GDD-mode crop calendar.
+        record_first_day = date_to_day_number(date(
+            temperature_record.first_year, temperature_record.first_month,
+            temperature_record.first_day))
+        offset = run.crop_first_day - record_first_day
+        if offset < 0 or offset >= len(temperature_record.values):
+            raise ValueError('Temperature record does not cover crop sowing day')
+        future_temperature = np.asarray(temperature_record.values[offset:])
+        future_gdd = degrees_day(value('Base temperature'), value('Upper temperature'),
+                                 future_temperature[:, 0], future_temperature[:, 1], 3)
+        emergence_day = int(calendar_days_for_gdd(
+            future_gdd, int(value('GDDays: from sowing to emergence'))))
+        full_canopy_gdd = int(value('GDDays: from sowing to emergence')) + int(
+            round_fortran(np.log((.25 * maximum_cover * maximum_cover / initial_cover) /
+                                 (maximum_cover - .98 * maximum_cover)) /
+                          value('CGC for GGDays')))
+        full_canopy_gdd = min(full_canopy_gdd, int(value('GDDays: from sowing to maturity')))
+        full_canopy_day = int(calendar_days_for_gdd(future_gdd, full_canopy_gdd))
+        if emergence_day == -9 or full_canopy_day == -9:
+            raise NotImplementedError('Temperature record ends before a GDD crop milestone')
         canopy = potential_canopy_gdd(cumulative, value('GDDays: from sowing to emergence'),
             value('GDDays: from sowing to start senescence'), value('GDDays: from sowing to maturity'),
             initial_cover, maximum_cover, value('CGC for GGDays'), value('CDC for GGDays'))
         canopy = jnp.where(in_crop, canopy, 0.0)
-        full_canopy = value('Calendar Days: from sowing to emergence') + np.log(
-            .25 * maximum_cover / (.02 * initial_cover)) / value('Canopy growth coefficient')
         co2 = co2_for_period(path('Atmospheric CO2'), run.crop_first_day, run.crop_last_day)
-        potential = calculate_potential_et(dap, value('Calendar Days: from sowing to emergence'),
-            full_canopy, value('Calendar Days: from sowing to start senescence'), cycle,
+        potential = calculate_potential_et(dap, emergence_day,
+            full_canopy_day, value('Calendar Days: from sowing to start senescence'), cycle,
             canopy, eto, value('Crop coefficient when canopy is complete'),
             value('Cumulative decrease'), maximum_cover, lax.associative_scan(jnp.maximum, canopy),
             value('Effect of canopy cover in reducing soil evaporation'), co2, gdd,
