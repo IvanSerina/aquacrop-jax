@@ -19,6 +19,45 @@ class PotentialET(NamedTuple):
     cold_stress: jax.Array
 
 
+class ProtectedSeedlingState(NamedTuple):
+    """Persistent ``CCiPrev`` and ``Simulation.ProtectedSeedling`` state."""
+    cover: jax.Array
+    protected: jax.Array
+
+
+def protected_seedling_gdd_step(state, cumulative_gdd, daily_gdd,
+                               emergence_gdd, senescence_gdd, maturity_gdd,
+                               initial_cover, maximum_cover, growth_coefficient,
+                               decline_coefficient, reduction_growth_pct,
+                               reduction_cover_pct):
+    """The protected-seedling branch of ``DetermineCCiGDD``.
+
+    The returned validity flag becomes false on the *next* day after cover
+    exceeds 1.25 CCo. The caller must switch to the water-stressed canopy
+    recurrence then; this operator deliberately has no fallback curve.
+    """
+    gdd = jnp.asarray(cumulative_gdd, F64)
+    previous = jnp.asarray(state.cover, F64)
+    protected = jnp.asarray(state.protected, jnp.bool_)
+    before_emergence = gdd <= jnp.asarray(emergence_gdd, F64)
+    after_harvest = round_fortran(gdd) > jnp.asarray(maturity_gdd, F64)
+    growing = gdd < jnp.asarray(senescence_gdd, F64)
+    # DetermineCCiGDD enters its first-growth branch while the seedling is
+    # protected and CCiPrev <= 1.25 CCo, regardless of leaf water stress.
+    initial = jnp.asarray(initial_cover, F64)
+    first_growth = (previous <= initial) | (gdd <= jnp.asarray(daily_gdd, F64))
+    phase_valid = before_emergence | after_harvest | (
+        growing & protected & ((previous <= 1.25 * initial) | first_growth))
+    potential = potential_canopy_gdd(
+        gdd, emergence_gdd, senescence_gdd, maturity_gdd,
+        initial, maximum_cover, growth_coefficient, decline_coefficient,
+        reduction_growth_pct, reduction_cover_pct)
+    cover = jnp.where(before_emergence | after_harvest, 0.0,
+                      jnp.where(phase_valid, potential, previous))
+    still_protected = protected & (cover <= 1.25 * initial)
+    return ProtectedSeedlingState(cover, still_protected), phase_valid
+
+
 def canopy_at_time(time, initial_cover, growth_coefficient, maximum_cover):
     """Translate ``CCatTime``/``CCatGDD`` (same continuous equation)."""
     time, initial, growth, maximum = [jnp.asarray(value, F64) for value in
