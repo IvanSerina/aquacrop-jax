@@ -1,0 +1,14 @@
+{
+  "source": "global.f90::TimeToMaxCanopySF, immutable AquaCrop 7.3 object files",
+  "inputs": ["initial_cover", "growth_coefficient", "maximum_cover", "emergence_day", "full_canopy_day", "senescence_day", "flowering_day", "flowering_length", "determinant_crop", "reduction_growth_pct", "reduction_cover_pct", "stress_class_pct"],
+  "cases": [
+    {"input": [0.05, 0.142, 0.95, 1, 39, 180, 0, 0, 0, 24, 40, 50], "expected": [47, 24, 40, 50]},
+    {"input": [0.05, 0.142, 0.95, 1, 39, 180, 0, 0, 0, 24, 40, 0], "expected": [39, 24, 40, 0]},
+    {"input": [0.05, 0.142, 0.95, 1, 39, 180, 0, 0, 0, 0, 0, 50], "expected": [39, 0, 0, 50]},
+    {"input": [0.05, 0.142, 0.95, 1, 39, 25, 0, 0, 0, 24, 40, 50], "expected": [34, 0, 51, 50]},
+    {"input": [0.05, 0.142, 0.95, 1, 39, 8, 0, 0, 0, 24, 40, 50], "expected": [34, 0, 51, 50]},
+    {"input": [0.05, 0.142, 0.95, 1, 39, 180, 15, 10, 1, 24, 40, 50], "expected": [34, 0, 51, 50]},
+    {"input": [0.5, 0.142, 0.55, 1, 39, 180, 0, 0, 0, 24, 40, 50], "expected": [1, 24, 40, 50]},
+    {"input": [0.05, 0.142, 0.95, 1, 39, 45, 0, 0, 0, 80, 0, 80], "expected": [45, 13, 0, 80]}
+  ]
+}
