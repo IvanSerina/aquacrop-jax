@@ -8,7 +8,7 @@ import jax.numpy as jnp
 from jax import lax
 
 from .rounding import round_fortran
-from .transpiration import stress_coefficient
+from .stress import stress_coefficient
 
 F64 = jnp.float64
 

@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
+import jax
 
-from aquacrop_jax.roots import actual_rooting_depth_gdd, root_zone_water
+from aquacrop_jax.roots import (actual_rooting_depth_gdd, canopy_water_zone,
+                                root_zone_water)
 
 
 def test_ottawa_gdd_root_depth_guards_and_maximum():
@@ -29,3 +31,15 @@ def test_root_zone_relative_depletion_is_bounded():
     wet = root_zone_water([0.46], [0.1], [0.0], 0.1, 29.0, 13.0, 46.0)
     assert float(dry.relative_depletion) == pytest.approx(1.0)
     assert float(wet.relative_depletion) == pytest.approx(0.0)
+
+
+def test_canopy_selects_relatively_wetter_topsoil_after_rain():
+    selected = jax.jit(canopy_water_zone)
+    common = ([.1, .1, .1], [0., 0., 0.], .3, 29., 13., 46., .1)
+    top_wet = selected([.29, .15, .15], *common)
+    root_wet = selected([.15, .29, .29], *common)
+    assert bool(top_wet.topsoil_considered)
+    assert float(top_wet.actual_mm) == pytest.approx(29.)
+    assert float(top_wet.field_capacity_mm) == pytest.approx(29.)
+    assert not bool(root_wet.topsoil_considered)
+    assert float(root_wet.actual_mm) == pytest.approx(73.)

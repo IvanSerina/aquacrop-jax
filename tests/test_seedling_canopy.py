@@ -6,7 +6,11 @@ import jax.numpy as jnp
 from jax import lax
 import numpy as np
 
-from aquacrop_jax.canopy import (ProtectedSeedlingState, calculate_potential_et,
+from aquacrop_jax.canopy import (EarlyVegetativeCanopyState,
+                                ProtectedSeedlingState, calculate_potential_et,
+                                early_vegetative_gdd_step,
+                                leaf_expansion_gdd_coefficient,
+                                leaf_thresholds_for_eto,
                                 protected_seedling_gdd_step)
 from aquacrop_jax.fertility import soil_fertility_effect
 from aquacrop_jax.kernels import degrees_day
@@ -81,3 +85,67 @@ def test_protected_seedling_guard_and_phase_boundary_are_explicit():
         30., 10., 5., 100., 120., .05, .95, .012, .006, 24., 40.)
     assert not bool(valid)
     assert float(after.cover) == .064
+
+
+def test_early_vegetative_scan_matches_native_ottawa_through_day_five():
+    daily = read_daily_output(TESTCASE / 'OUTP_REF/OttawaPRMday.OUT')
+    native = [row.mapping() for row in daily.records if row.run == 1][:5]
+    assert [r['canopy_pct'] for r in native] == [5.4, 5.9, 6.4, 7.0, 7.7]
+    assert [r['expansion_stress'] for r in native] == [-9., -9., -9., 0., 0.]
+    temperature = np.asarray([(r['tmin'], r['tmax']) for r in native])
+    daily_gdd = degrees_day(5., 30., temperature[:, 0], temperature[:, 1], 3)
+    cumulative = jnp.cumsum(daily_gdd)
+    # Native root-water columns are printed *after* ET. On days 4-5 they
+    # remain above the adjusted leaf threshold, so the wetter pre-ET state
+    # must also have zero expansion stress; no native pre-ET state is inferred.
+    forcing = tuple(jnp.asarray([r[k] for r in native], jnp.float64) for k in
+        ('root_water', 'root_fc', 'root_wp', 'eto'))
+    growth_reduction = jnp.asarray([0., 24., 24., 24., 24.])
+    cover_reduction = jnp.asarray([0., 40., 40., 40., 40.])
+
+    def step(state, values):
+        total, daily, actual, fc, wp, eto, red_growth, red_cover = values
+        p_upper, p_lower = leaf_thresholds_for_eto(eto, .15, .55)
+        next_state, stress, valid = early_vegetative_gdd_step(
+            state, total, daily, 5., 600., 1920., 1920., 1920.,
+            .05, .95, .012, .006, red_growth, red_cover,
+            actual, fc, wp, p_upper, p_lower, 3.)
+        return next_state, (next_state.cover, next_state.protected, stress, valid)
+
+    initial = EarlyVegetativeCanopyState(
+        jnp.float64(0.), jnp.float64(.05), jnp.float64(.95), jnp.bool_(True))
+    inputs = (cumulative, daily_gdd, *forcing,
+              growth_reduction, cover_reduction)
+    for state, (cover, protected, stress, valid) in (
+        lax.scan(step, initial, inputs),
+        jax.jit(lambda x: lax.scan(step, initial, x))(inputs)):
+        np.testing.assert_array_equal(valid, [True] * 5)
+        np.testing.assert_array_equal(protected, [True, True, False, False, False])
+        np.testing.assert_allclose(stress,
+                                   [r['expansion_stress'] for r in native],
+                                   rtol=0., atol=1e-12)
+        np.testing.assert_allclose(100. * cover,
+                                   [r['canopy_pct'] for r in native],
+                                   rtol=0., atol=.050000000001)
+        assert cover.dtype == jnp.float64
+        assert not bool(state.protected)
+
+
+def test_leaf_growth_stops_at_wilting_point_without_changing_water():
+    coefficient, stress = leaf_expansion_gdd_coefficient(
+        .012, 35., 100., 35., .15, .55, 3.)
+    assert float(coefficient) == 0.
+    assert float(stress) == 100.
+    state = EarlyVegetativeCanopyState(
+        jnp.float64(.08), jnp.float64(.06), jnp.float64(.08), jnp.bool_(False))
+    next_state, stress, valid = early_vegetative_gdd_step(
+        state, 70., 10., 5., 600., 1920., 1920., 1920.,
+        .05, .95, .012, .006, 24., 40., 35., 100., 35., .15, .55, 3.)
+    assert bool(valid)
+    assert float(next_state.cover) == .08
+    assert float(next_state.initial_adjusted) == .05
+    assert float(stress) == 100.
+    _, _, valid = early_vegetative_gdd_step(
+        next_state, 601., 10., 5., 600., 1920., 1920., 1920.,
+        .05, .95, .012, .006, 24., 40., 35., 100., 35., .15, .55, 3.)
+    assert not bool(valid)

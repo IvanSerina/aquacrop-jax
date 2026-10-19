@@ -6,8 +6,10 @@ from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
+from jax import lax
 
 from .rounding import round_fortran
+from .stress import stress_coefficient
 F64 = jnp.float64
 
 
@@ -23,6 +25,167 @@ class ProtectedSeedlingState(NamedTuple):
     """Persistent ``CCiPrev`` and ``Simulation.ProtectedSeedling`` state."""
     cover: jax.Array
     protected: jax.Array
+
+
+class EarlyVegetativeCanopyState(NamedTuple):
+    """Fortran CCiPrev, CCoAdjusted, CCxAdjusted and ProtectedSeedling."""
+    cover: jax.Array
+    initial_adjusted: jax.Array
+    maximum_adjusted: jax.Array
+    protected: jax.Array
+
+
+def leaf_thresholds_for_eto(eto_mm, default_upper, default_lower,
+                            fao_correction=True, adjustment_factor=1.0):
+    """``AdjustpLeafToETo`` before selecting root-zone canopy stress."""
+    eto, upper, lower, factor = [jnp.asarray(v, F64) for v in
+        (eto_mm, default_upper, default_lower, adjustment_factor)]
+    def adjusted(p):
+        return jnp.clip(p + factor * 0.04 * (5.0 - eto) *
+                        jnp.log10(10.0 - 9.0 * p), 0.0, 1.0)
+    return (jnp.where(fao_correction, adjusted(upper), upper),
+            jnp.where(fao_correction, adjusted(lower), lower))
+
+
+def leaf_expansion_gdd_coefficient(growth_coefficient, actual_water_mm,
+                                   field_capacity_mm, wilting_point_mm,
+                                   p_leaf_upper, p_leaf_lower, shape_factor):
+    """``DetermineGDDCGCadjusted`` using the selected root/topsoil zone."""
+    growth, actual, fc, wp, upper, lower, shape = [jnp.asarray(v, F64) for v in
+        (growth_coefficient, actual_water_mm, field_capacity_mm,
+         wilting_point_mm, p_leaf_upper, p_leaf_lower, shape_factor)]
+    depletion = jnp.where(fc != wp, (fc - actual) / (fc - wp), 0.0)
+    ks = stress_coefficient(depletion, upper, lower, shape)
+    ks = jnp.where(actual >= fc, 1.0,
+                   jnp.where(actual <= wp, 0.0,
+                             jnp.where(depletion <= upper, 1.0,
+                                       jnp.where(depletion >= lower, 0.0, ks))))
+    return growth * ks, 100.0 * (1.0 - ks)
+
+
+def required_gdd(previous_cover, initial_cover, maximum_cover,
+                 adjusted_growth, cumulative_gdd, daily_gdd):
+    """``DetermineCCiGDD::RequiredGDD`` with its source operation order."""
+    previous, initial, maximum, growth, total, daily = [jnp.asarray(v, F64)
+        for v in (previous_cover, initial_cover, maximum_cover,
+                  adjusted_growth, cumulative_gdd, daily_gdd)]
+    elapsed = total - daily
+    early = jnp.log(previous / initial) / elapsed
+    late = jnp.log((0.25 * maximum * maximum / initial) /
+                   (maximum - previous)) / elapsed
+    cgcx = jnp.where(previous <= maximum / 2.0, early, late)
+    return elapsed * cgcx / growth
+
+
+def early_vegetative_gdd_step(
+        state, cumulative_gdd, daily_gdd, emergence_gdd, full_canopy_sf_gdd,
+        final_growth_gdd, senescence_gdd, maturity_gdd, initial_cover,
+        maximum_cover, growth_coefficient, decline_coefficient,
+        reduction_growth_pct, reduction_cover_pct, effective_water_mm,
+        effective_fc_mm, effective_wp_mm, p_leaf_upper, p_leaf_lower,
+        leaf_shape_factor):
+    """Early ``DetermineCCiGDD`` through the full-canopy stress milestone.
+
+    The caller supplies the wetter selected root/topsoil zone *after*
+    infiltration, capillary rise and salt transport but *before* ET. A false
+    validity flag forbids use during fertility canopy decline or senescence.
+    """
+    gdd, daily, initial, maximum = [jnp.asarray(v, F64) for v in
+        (cumulative_gdd, daily_gdd, initial_cover, maximum_cover)]
+    full_sf = jnp.asarray(full_canopy_sf_gdd, F64)
+    final = jnp.asarray(final_growth_gdd, F64)
+    senescence = jnp.asarray(senescence_gdd, F64)
+    protected = jnp.asarray(state.protected, jnp.bool_)
+    previous = jnp.asarray(state.cover, F64)
+    initial_adjusted = jnp.asarray(state.initial_adjusted, F64)
+    before = gdd <= jnp.asarray(emergence_gdd, F64)
+    after = round_fortran(gdd) > jnp.asarray(maturity_gdd, F64)
+    active = (gdd < final) & (gdd < senescence) & (gdd <= full_sf)
+    valid = before | after | active
+    growth_sf = jnp.asarray(growth_coefficient, F64) * (
+        1.0 - jnp.asarray(reduction_growth_pct, F64) / 100.0)
+    maximum_sf = maximum * (1.0 - jnp.asarray(reduction_cover_pct, F64) / 100.0)
+
+    def growing(_):
+        first = (previous <= initial_adjusted) | (gdd <= daily) | (
+            protected & (previous <= 1.25 * initial))
+
+        def first_day(_):
+            potential = potential_canopy_gdd(
+                gdd, emergence_gdd, senescence_gdd, maturity_gdd,
+                initial, maximum, growth_coefficient, decline_coefficient,
+                reduction_growth_pct, reduction_cover_pct)
+            canopy = jnp.where(protected, potential,
+                               initial_adjusted * jnp.exp(growth_sf * daily))
+            next_protected = protected & (canopy <= 1.25 * initial)
+            return (canopy, initial_adjusted, canopy, next_protected,
+                    jnp.asarray(-9.0, F64))
+
+        def later_day(_):
+            def below_maximum(_):
+                adjusted_growth, stress = leaf_expansion_gdd_coefficient(
+                    growth_sf, effective_water_mm, effective_fc_mm,
+                    effective_wp_mm, p_leaf_upper, p_leaf_lower,
+                    leaf_shape_factor)
+
+                def still_growing(_):
+                    elapsed = required_gdd(previous, initial_adjusted,
+                                           maximum_sf, adjusted_growth,
+                                           gdd, daily)
+                    extended = elapsed + (final - gdd) + daily
+                    adjusted_maximum = jnp.where(elapsed > 0.0,
+                        canopy_at_time(extended, initial_adjusted,
+                                       adjusted_growth, maximum_sf), -9.0)
+                    near_maximum = jnp.abs(previous - .97999 * maximum_sf) < .001
+                    potential = potential_canopy_gdd(
+                        gdd, emergence_gdd, senescence_gdd, maturity_gdd,
+                        initial, maximum, growth_coefficient,
+                        decline_coefficient, reduction_growth_pct,
+                        reduction_cover_pct)
+                    candidate = canopy_at_time(
+                        elapsed + daily, initial_adjusted,
+                        adjusted_growth, adjusted_maximum)
+                    canopy = jnp.where(adjusted_maximum < 0.0, previous,
+                                       jnp.where(near_maximum, potential,
+                                                 jnp.where(elapsed < 0.0,
+                                                           previous, candidate)))
+                    return canopy, initial_adjusted, stress
+
+                def no_growth(_):
+                    adjusted_initial = jnp.where(previous > initial_adjusted,
+                                                 initial, previous)
+                    return previous, adjusted_initial, stress
+
+                return lax.cond(adjusted_growth > 1e-6, still_growing,
+                                no_growth, operand=None)
+
+            def at_maximum(_):
+                potential = potential_canopy_gdd(
+                    gdd, emergence_gdd, senescence_gdd, maturity_gdd,
+                    initial, maximum, growth_coefficient, decline_coefficient,
+                    reduction_growth_pct, reduction_cover_pct)
+                return potential, initial, jnp.asarray(-33.0, F64)
+
+            canopy, adjusted_initial, stress = lax.cond(
+                previous < .97999 * maximum_sf, below_maximum,
+                at_maximum, operand=None)
+            capped = canopy > maximum_sf
+            canopy = jnp.minimum(canopy, maximum_sf)
+            stress = jnp.where(capped, -33.0, stress)
+            return canopy, adjusted_initial, canopy, protected, stress
+
+        cover, cco, ccx, seedling, stress = lax.cond(
+            first, first_day, later_day, operand=None)
+        return EarlyVegetativeCanopyState(cover, cco, ccx, seedling), stress
+
+    def inactive(_):
+        cover = jnp.where(before | after, 0.0, previous)
+        return EarlyVegetativeCanopyState(
+            cover, initial_adjusted, state.maximum_adjusted, protected), jnp.asarray(-9.0, F64)
+
+    next_state, stress = lax.cond(active & ~(before | after), growing,
+                                  inactive, operand=None)
+    return next_state, stress, valid
 
 
 def protected_seedling_gdd_step(state, cumulative_gdd, daily_gdd,

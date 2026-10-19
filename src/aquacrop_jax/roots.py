@@ -7,6 +7,8 @@ from typing import NamedTuple
 import jax
 import jax.numpy as jnp
 
+from .rounding import round_fortran
+
 F64 = jnp.float64
 
 
@@ -19,6 +21,41 @@ class RootZoneWater(NamedTuple):
     total_available_mm: jax.Array
     relative_depletion: jax.Array
     fractions: jax.Array
+
+
+class CanopyWaterZone(NamedTuple):
+    """Water state chosen by ``DetermineRootZoneWC`` for canopy stress."""
+    actual_mm: jax.Array
+    field_capacity_mm: jax.Array
+    wilting_point_mm: jax.Array
+    topsoil_considered: jax.Array
+
+
+def canopy_water_zone(theta, thickness, gravel_volume_pct, rooting_depth,
+                      field_capacity_pct, wilting_point_pct, saturation_pct,
+                      topsoil_depth_m):
+    """Choose topsoil only if it is relatively wetter than the root zone."""
+    root = root_zone_water(theta, thickness, gravel_volume_pct, rooting_depth,
+                           field_capacity_pct, wilting_point_pct,
+                           saturation_pct)
+    top_depth = jnp.minimum(jnp.asarray(rooting_depth, F64),
+                            jnp.asarray(topsoil_depth_m, F64))
+    top = root_zone_water(theta, thickness, gravel_volume_pct, top_depth,
+                          field_capacity_pct, wilting_point_pct,
+                          saturation_pct)
+
+    def relative(zone):
+        available = zone.field_capacity_mm - zone.wilting_point_mm
+        return jnp.where(round_fortran(1000.0 * available) > 0.0,
+                         (zone.field_capacity_mm - zone.actual_mm) / available,
+                         0.0)
+
+    wetter_top = relative(top) < relative(root)
+    return CanopyWaterZone(
+        jnp.where(wetter_top, top.actual_mm, root.actual_mm),
+        jnp.where(wetter_top, top.field_capacity_mm, root.field_capacity_mm),
+        jnp.where(wetter_top, top.wilting_point_mm, root.wilting_point_mm),
+        wetter_top)
 
 
 @jax.jit
