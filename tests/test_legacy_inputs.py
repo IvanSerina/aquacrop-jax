@@ -6,7 +6,13 @@ import pytest
 
 from aquacrop_jax.climate import date_to_day_number
 from aquacrop_jax.legacy_inputs import (co2_for_period, groundwater_forcing,
-    initial_conditions, manual_irrigation_forcing)
+    initial_conditions, manual_irrigation_forcing, field_fertility_stress)
+
+
+def test_field_fertility_stress_matches_native_ottawa_management():
+    path = Path(__file__).parents[2] / 'aquacrop-fortran/testcase/DATA/Ottawa.MAN'
+    assert field_fertility_stress(path) == 50
+    assert field_fertility_stress(None) == 0
 
 
 def test_manual_irr_preserves_fortran_ec_lookahead_and_absolute_days(tmp_path):

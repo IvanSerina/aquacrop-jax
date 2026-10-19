@@ -29,6 +29,19 @@ def _records(lines, columns):
     return rows
 
 
+def field_fertility_stress(path):
+    """Read the integer fertility stress from ``LoadManagement``'s MAN header."""
+    if path is None:
+        return 0
+    lines = Path(path).read_text().splitlines()
+    if len(lines) < 5:
+        raise ValueError('MAN header ends before the fertility-stress record')
+    try:
+        return int(lines[4].split(':', 1)[0].strip())
+    except ValueError as exc:
+        raise ValueError('MAN fertility stress must be an integer') from exc
+
+
 def manual_irrigation_forcing(path, days, crop_first_day):
     """Load v7 manual IRR, including IrriManual's legacy EC lookahead."""
     days = np.asarray(days, dtype=int)
