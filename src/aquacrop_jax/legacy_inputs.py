@@ -42,6 +42,35 @@ def field_fertility_stress(path):
         raise ValueError('MAN fertility stress must be an integer') from exc
 
 
+@dataclass(frozen=True)
+class ManualCuttings:
+    day_numbers: tuple[int, ...]
+    canopy_after_cut_pct: int
+
+
+def manual_cuttings(path, crop_first_day):
+    """Resolve v7 MAN harvest offsets as ``OpenHarvestInfo`` does."""
+    if path is None:
+        return ManualCuttings((), 30)
+    lines = Path(path).read_text().splitlines()
+    if len(lines) < 21:
+        raise ValueError('MAN header ends before the cuttings records')
+    if _number(lines[1]) < 7.0:
+        raise NotImplementedError('Cuttings before MAN v7 are not ported')
+    if int(_number(lines[12])) == 0:
+        return ManualCuttings((), int(_number(lines[13])))
+    if int(_number(lines[17])) != 0:
+        raise NotImplementedError('Generated cutting schedules are not yet ported')
+    first = int(_number(lines[20]))
+    first = crop_first_day if first == -9 else first
+    days = []
+    for line in lines[24:]:
+        if line.strip():
+            offset = int(_number(line))
+            days.append(first + offset - 1)
+    return ManualCuttings(tuple(days), int(_number(lines[13])))
+
+
 def manual_irrigation_forcing(path, days, crop_first_day):
     """Load v7 manual IRR, including IrriManual's legacy EC lookahead."""
     days = np.asarray(days, dtype=int)

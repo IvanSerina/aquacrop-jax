@@ -1,18 +1,35 @@
 from datetime import date
 from pathlib import Path
+import re
 
 import numpy as np
 import pytest
 
 from aquacrop_jax.climate import date_to_day_number
 from aquacrop_jax.legacy_inputs import (co2_for_period, groundwater_forcing,
-    initial_conditions, manual_irrigation_forcing, field_fertility_stress)
+    initial_conditions, manual_irrigation_forcing, field_fertility_stress,
+    manual_cuttings)
 
 
 def test_field_fertility_stress_matches_native_ottawa_management():
     path = Path(__file__).parents[2] / 'aquacrop-fortran/testcase/DATA/Ottawa.MAN'
     assert field_fertility_stress(path) == 50
     assert field_fertility_stress(None) == 0
+
+
+def test_ottawa_manual_cuttings_match_native_harvest_dates():
+    testcase = Path(__file__).parents[2] / 'aquacrop-fortran/testcase'
+    schedule = manual_cuttings(testcase / 'DATA/Ottawa.MAN', 41414)
+    assert schedule.canopy_after_cut_pct == 25
+    assert len(schedule.day_numbers) == 8
+    native = []
+    for line in (testcase / 'OUTP_REF/OttawaPRMharvests.OUT').read_text().splitlines():
+        event = re.match(r'^\s*[1-9]\d*\s+(\d+)\s+(\d+)\s+(\d{4})\s+\d+\s+\d+\s+', line)
+        if event:
+            day, month, year = map(int, event.groups())
+            native.append(date_to_day_number(date(year, month, day)))
+    assert tuple(native) == schedule.day_numbers
+    assert manual_cuttings(None, 41414).day_numbers == ()
 
 
 def test_manual_irr_preserves_fortran_ec_lookahead_and_absolute_days(tmp_path):
