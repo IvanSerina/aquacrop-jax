@@ -135,6 +135,103 @@ def water_crop_pre_et_step(
                           salt_gw)
 
 
+def water_crop_post_et_step(
+        pre_et, surface_store, evaporation_depth, stage2_start,
+        salt_growing_days, mean_salt_stress, rain_day, root_day, tpot_day,
+        irrigation_day, groundwater_day, epot_day, growing_day, *, thickness,
+        gravel_volume_pct, saturation_pct, field_capacity_pct,
+        wilting_point_pct, rew_mm, maximum_evap_depth_m, decline_factor,
+        minimum_root_depth_m, anaerobic_sensitive, p_stomatal, smax_top,
+        smax_bottom, stomatal_shape, stress_reduction_pct, sink_correction,
+        salt_stomatal_coefficients, salinity_minimum_ece,
+        salinity_maximum_ece, salinity_response_pct, salt_solubility,
+        salt_enabled, geometry):
+    """Finish one water/salt day using canopy-derived ET demands."""
+    (water_theta, salt, water, begin, salt_begin, groundwater_inflow,
+     capillary_mm, salt_in, salt_out, salt_gw) = pre_et
+    salt_reduction = jnp.asarray(0.0, F64)
+    if salt_stomatal_coefficients is not None:
+        before_et_ec = compartment_conductivity(salt, water_theta, thickness,
+            gravel_volume_pct, saturation_pct, field_capacity_pct, salt_solubility)
+        before_et_zone = root_zone_conductivity(before_et_ec, thickness, root_day,
+                                                 minimum_root_depth_m)
+        instantaneous = (1.0 - salinity_stress(before_et_zone.ece,
+            salinity_minimum_ece, salinity_maximum_ece)) * 100.0
+        mean_salt_stress = jnp.where(growing_day,
+            (salt_growing_days * mean_salt_stress + instantaneous) / (salt_growing_days + 1.0),
+            mean_salt_stress)
+        salt_growing_days += growing_day.astype(F64)
+        b0, b1, b2 = salt_stomatal_coefficients
+        salt_reduction = round_fortran(b0 + b1 * mean_salt_stress + b2 * mean_salt_stress ** 2)
+        salt_reduction = jnp.where((salt_reduction < 0.0) | (mean_salt_stress <= 0.1), 0.0,
+            jnp.where((salt_reduction > 100.0) | (mean_salt_stress >= 99.9), 100.0, salt_reduction))
+        salt_reduction = jnp.where(growing_day, salt_reduction, 0.0)
+    rew = jnp.asarray(rew_mm, F64)
+    is_wet = rain_day + irrigation_day > 0.0
+    surface_store = jnp.where(
+        is_wet, jnp.minimum(jnp.maximum(
+            rain_day + irrigation_day - water.runoff, 0.0), rew),
+        surface_store)
+    evaporation_depth = jnp.where(is_wet, jnp.asarray(0.15, F64),
+                                  evaporation_depth)
+    first = stage1_evaporation(
+        water_theta, thickness, gravel_volume_pct, wilting_point_pct,
+        epot_day, surface_store,
+        0.15)
+    recalculated = prepare_stage2_percentage(
+        first.theta, thickness, gravel_volume_pct, saturation_pct,
+        field_capacity_pct, rew, 0.15)
+    stage2_start = jnp.where(
+        jnp.logical_and(is_wet, first.remaining_surface_water < 1e-12),
+        recalculated, stage2_start)
+    second = stage2_evaporation(
+        first.theta, thickness, gravel_volume_pct, saturation_pct,
+        field_capacity_pct, wilting_point_pct, rew, stage2_start,
+        first.remaining_potential, evaporation_depth,
+        maximum_evap_depth_m, decline_factor)
+    evaporation = first.actual_evaporation + second.actual_evaporation
+    effective_root = constrain_root_depth(
+        root_day, groundwater_day, minimum_root_depth_m,
+        anaerobic_sensitive)
+    salt_ec = compartment_conductivity(salt, second.theta, thickness,
+        gravel_volume_pct, saturation_pct, field_capacity_pct, salt_solubility)
+    crop = compartment_transpiration(
+        second.theta, thickness, gravel_volume_pct, field_capacity_pct,
+        wilting_point_pct, saturation_pct, effective_root, tpot_day,
+        p_stomatal, smax_top, smax_bottom, stomatal_shape,
+        jnp.maximum(jnp.asarray(stress_reduction_pct, F64), salt_reduction), sink_correction,
+        salt_conductivity=salt_ec if salt_stomatal_coefficients is not None else None,
+        salinity_minimum_ece=salinity_minimum_ece,
+        salinity_maximum_ece=salinity_maximum_ece,
+        salinity_response_pct=salinity_response_pct,
+        salt_stomatal_coefficients=salt_stomatal_coefficients)
+    end = profile_water_mm(crop.theta, thickness, gravel_volume_pct)
+    residual = water_balance_residual(
+        begin, 0.0, end, 0.0, rain_day, irrigation_day, capillary_mm,
+        groundwater_inflow,
+        water.drainage, water.runoff, evaporation, crop.actual_mm)
+    if salt_enabled:
+        salt = concentrate_salts(salt, crop.theta, thickness, gravel_volume_pct,
+                                 geometry, salt_solubility)
+    salt_ec = compartment_conductivity(salt, crop.theta, thickness,
+        gravel_volume_pct, saturation_pct, field_capacity_pct, salt_solubility)
+    zone_ec = root_zone_conductivity(salt_ec, thickness, effective_root,
+                                     minimum_root_depth_m)
+    salt_residual = salt_begin + salt_in + salt_gw - salt_out - jnp.sum(salt.dissolved + salt.deposited)
+    output = WaterCropTrajectory(crop.theta, water.runoff, water.drainage,
+              water.infiltration, evaporation, crop.actual_mm,
+              crop.root_zone_stress, first.remaining_surface_water,
+              second.evaporation_depth, stage2_start, residual,
+              irrigation_day, capillary_mm, groundwater_inflow,
+              groundwater_day, salt.dissolved, salt.deposited, salt_in,
+              salt_out, salt_gw, salt_residual, salt_ec.ece, zone_ec.ece,
+              salinity_stress(zone_ec.ece, salinity_minimum_ece, salinity_maximum_ece),
+              mean_salt_stress, salt_growing_days, salt_reduction)
+    carry = (crop.theta, first.remaining_surface_water,
+             second.evaporation_depth, stage2_start, salt, salt_growing_days, mean_salt_stress)
+    return carry, output
+
+
 def run_water_crop_trajectory(
         initial_theta, rain, eto, rooting_depth, potential_transpiration,
         thickness, gravel_volume_pct, adjusted_fc, saturation_pct,
@@ -227,89 +324,25 @@ def run_water_crop_trajectory(
             capillary_enabled=capillary_enabled, cap_a=cap_a, cap_b=cap_b,
             salt_enabled=salt_enabled, geometry=geometry,
             salt_solubility=salt_solubility)
-        (water_theta, salt, water, begin, salt_begin, groundwater_inflow,
-         capillary_mm, salt_in, salt_out, salt_gw) = pre_et
-        salt_reduction = jnp.asarray(0.0, F64)
-        if salt_stomatal_coefficients is not None:
-            before_et_ec = compartment_conductivity(salt, water_theta, thickness,
-                gravel_volume_pct, saturation_pct, field_capacity_pct, salt_solubility)
-            before_et_zone = root_zone_conductivity(before_et_ec, thickness, root_day,
-                                                     minimum_root_depth_m)
-            instantaneous = (1.0 - salinity_stress(before_et_zone.ece,
-                salinity_minimum_ece, salinity_maximum_ece)) * 100.0
-            mean_salt_stress = jnp.where(growing_day,
-                (salt_growing_days * mean_salt_stress + instantaneous) / (salt_growing_days + 1.0),
-                mean_salt_stress)
-            salt_growing_days += growing_day.astype(F64)
-            b0, b1, b2 = salt_stomatal_coefficients
-            salt_reduction = round_fortran(b0 + b1 * mean_salt_stress + b2 * mean_salt_stress ** 2)
-            salt_reduction = jnp.where((salt_reduction < 0.0) | (mean_salt_stress <= 0.1), 0.0,
-                jnp.where((salt_reduction > 100.0) | (mean_salt_stress >= 99.9), 100.0, salt_reduction))
-            salt_reduction = jnp.where(growing_day, salt_reduction, 0.0)
-        rew = jnp.asarray(rew_mm, F64)
-        is_wet = rain_day + irrigation_day > 0.0
-        surface_store = jnp.where(
-            is_wet, jnp.minimum(jnp.maximum(
-                rain_day + irrigation_day - water.runoff, 0.0), rew),
-            surface_store)
-        evaporation_depth = jnp.where(is_wet, jnp.asarray(0.15, F64),
-                                      evaporation_depth)
-        first = stage1_evaporation(
-            water_theta, thickness, gravel_volume_pct, wilting_point_pct,
-            epot_day, surface_store,
-            0.15)
-        recalculated = prepare_stage2_percentage(
-            first.theta, thickness, gravel_volume_pct, saturation_pct,
-            field_capacity_pct, rew, 0.15)
-        stage2_start = jnp.where(
-            jnp.logical_and(is_wet, first.remaining_surface_water < 1e-12),
-            recalculated, stage2_start)
-        second = stage2_evaporation(
-            first.theta, thickness, gravel_volume_pct, saturation_pct,
-            field_capacity_pct, wilting_point_pct, rew, stage2_start,
-            first.remaining_potential, evaporation_depth,
-            maximum_evap_depth_m, decline_factor)
-        evaporation = first.actual_evaporation + second.actual_evaporation
-        effective_root = constrain_root_depth(
-            root_day, groundwater_day, minimum_root_depth_m,
-            anaerobic_sensitive)
-        salt_ec = compartment_conductivity(salt, second.theta, thickness,
-            gravel_volume_pct, saturation_pct, field_capacity_pct, salt_solubility)
-        crop = compartment_transpiration(
-            second.theta, thickness, gravel_volume_pct, field_capacity_pct,
-            wilting_point_pct, saturation_pct, effective_root, tpot_day,
-            p_stomatal, smax_top, smax_bottom, stomatal_shape,
-            jnp.maximum(jnp.asarray(stress_reduction_pct, F64), salt_reduction), sink_correction,
-            salt_conductivity=salt_ec if salt_stomatal_coefficients is not None else None,
+        return water_crop_post_et_step(
+            pre_et, surface_store, evaporation_depth, stage2_start,
+            salt_growing_days, mean_salt_stress, rain_day, root_day, tpot_day,
+            irrigation_day, groundwater_day, epot_day, growing_day,
+            thickness=thickness, gravel_volume_pct=gravel_volume_pct,
+            saturation_pct=saturation_pct, field_capacity_pct=field_capacity_pct,
+            wilting_point_pct=wilting_point_pct, rew_mm=rew_mm,
+            maximum_evap_depth_m=maximum_evap_depth_m,
+            decline_factor=decline_factor, minimum_root_depth_m=minimum_root_depth_m,
+            anaerobic_sensitive=anaerobic_sensitive, p_stomatal=p_stomatal,
+            smax_top=smax_top, smax_bottom=smax_bottom,
+            stomatal_shape=stomatal_shape, stress_reduction_pct=stress_reduction_pct,
+            sink_correction=sink_correction,
+            salt_stomatal_coefficients=salt_stomatal_coefficients,
             salinity_minimum_ece=salinity_minimum_ece,
             salinity_maximum_ece=salinity_maximum_ece,
             salinity_response_pct=salinity_response_pct,
-            salt_stomatal_coefficients=salt_stomatal_coefficients)
-        end = profile_water_mm(crop.theta, thickness, gravel_volume_pct)
-        residual = water_balance_residual(
-            begin, 0.0, end, 0.0, rain_day, irrigation_day, capillary_mm,
-            groundwater_inflow,
-            water.drainage, water.runoff, evaporation, crop.actual_mm)
-        if salt_enabled:
-            salt = concentrate_salts(salt, crop.theta, thickness, gravel_volume_pct,
-                                     geometry, salt_solubility)
-        salt_ec = compartment_conductivity(salt, crop.theta, thickness,
-            gravel_volume_pct, saturation_pct, field_capacity_pct, salt_solubility)
-        zone_ec = root_zone_conductivity(salt_ec, thickness, effective_root,
-                                         minimum_root_depth_m)
-        salt_residual = salt_begin + salt_in + salt_gw - salt_out - jnp.sum(salt.dissolved + salt.deposited)
-        output = (crop.theta, water.runoff, water.drainage,
-                  water.infiltration, evaporation, crop.actual_mm,
-                  crop.root_zone_stress, first.remaining_surface_water,
-                  second.evaporation_depth, stage2_start, residual,
-                  irrigation_day, capillary_mm, groundwater_inflow,
-                  groundwater_day, salt.dissolved, salt.deposited, salt_in,
-                  salt_out, salt_gw, salt_residual, salt_ec.ece, zone_ec.ece,
-                  salinity_stress(zone_ec.ece, salinity_minimum_ece, salinity_maximum_ece),
-                  mean_salt_stress, salt_growing_days, salt_reduction)
-        carry = (crop.theta, first.remaining_surface_water,
-                 second.evaporation_depth, stage2_start, salt, salt_growing_days, mean_salt_stress)
-        return carry, output
+            salt_solubility=salt_solubility, salt_enabled=salt_enabled,
+            geometry=geometry)
 
     _, output = lax.scan(
         body,
