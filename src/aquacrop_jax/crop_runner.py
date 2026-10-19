@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from jax import lax
+from jax import lax, vmap
 import jax.numpy as jnp
 import numpy as np
 
@@ -144,8 +144,12 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
             value('GDDays: from sowing to start senescence'), value('GDDays: from sowing to maturity'),
             initial_cover, maximum_cover, value('CGC for GGDays'), value('CDC for GGDays'))
         canopy = jnp.where(in_crop, canopy, 0.0)
+        # BUDGET_module recomputes ET's calendar DAP from the rounded GDD
+        # total.  This may differ from daynr - Crop.Day1 + 1 on cold days.
+        et_dap = vmap(calendar_days_for_gdd, in_axes=(None, 0))(
+            future_gdd, round_fortran(cumulative))
         co2 = co2_for_period(path('Atmospheric CO2'), run.crop_first_day, run.crop_last_day)
-        potential = calculate_potential_et(dap, emergence_day,
+        potential = calculate_potential_et(et_dap, emergence_day,
             full_canopy_day, value('Calendar Days: from sowing to start senescence'), cycle,
             canopy, eto, value('Crop coefficient when canopy is complete'),
             value('Cumulative decrease'), maximum_cover, lax.associative_scan(jnp.maximum, canopy),
@@ -185,7 +189,8 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
         storage = np.sum(np.asarray(water.theta) * (1000. * dz * (1. - layer.gravel_volume / 100.)), axis=1)
         columns = dict(daynr=days, day=np.array([d.day for d in dates]),
             month=np.array([d.month for d in dates]), year=np.array([d.year for d in dates]),
-            dap=dap, rain=rain, eto=eto, tmin=temperature[:, 0], tmax=temperature[:, 1],
+            dap=dap, et_dap=et_dap, rain=rain, eto=eto,
+            tmin=temperature[:, 0], tmax=temperature[:, 1],
             gdd=gdd, sum_gdd=cumulative, co2=np.full(days.shape, co2), root_depth=root,
             canopy=canopy, potential_evaporation=potential.evaporation_mm,
             potential_transpiration=potential.transpiration_mm, water_mm=storage)

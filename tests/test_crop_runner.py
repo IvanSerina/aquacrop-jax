@@ -19,6 +19,8 @@ def test_ottawa_integrated_trace_covers_all_runs_and_balances(tmp_path):
     assert run_crop_stage(read_project(path), path, output) == 892
     with output.open() as stream:
         rows = list(csv.DictReader(stream))
+    # SumCalendarDays(roundc(SumGDDadjCC)) can look ahead or repeat a day.
+    assert [int(row['et_dap']) for row in rows[:5]] == [1, 2, 4, 5, 5]
     for name in rows[0]:
         assert np.all(np.isfinite([float(row[name]) for row in rows]))
     assert max(abs(float(row['residual'])) for row in rows) < 1e-9

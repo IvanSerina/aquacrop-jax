@@ -11,6 +11,7 @@ from aquacrop_jax.climate import (calendar_days_for_gdd, date_to_day_number,
 from aquacrop_jax.kernels import degrees_day
 from aquacrop_jax.legacy import read_climate_series
 from aquacrop_jax.outputs import read_daily_output
+from aquacrop_jax.rounding import round_fortran
 
 
 TESTCASE = Path(__file__).parents[2] / 'aquacrop-fortran/testcase'
@@ -33,6 +34,17 @@ def test_sum_calendar_days_counts_crossing_day_and_missing_record_under_jit_scan
         [int(calendar_days_for_gdd(daily, target)) for target in targets], expected)
     np.testing.assert_array_equal(
         jax.jit(lambda values: lax.scan(body, (), values)[1])(targets), expected)
+    np.testing.assert_array_equal(
+        jax.jit(lambda values: jax.vmap(calendar_days_for_gdd,
+                                       in_axes=(None, 0))(daily, values))(targets), expected)
+
+
+def test_gdd_et_dap_uses_rounded_cumulative_threshold():
+    daily = jnp.asarray([0.1, 0.2, 2.0], jnp.float64)
+    cumulative = jnp.cumsum(daily)
+    days = jax.jit(lambda values: jax.vmap(calendar_days_for_gdd,
+                      in_axes=(None, 0))(daily, round_fortran(values)))(cumulative)
+    np.testing.assert_array_equal(days, [0, 0, 3])
 
 
 def test_ottawa_native_emergence_occurs_on_first_sowing_day():
