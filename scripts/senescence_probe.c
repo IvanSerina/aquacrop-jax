@@ -25,6 +25,7 @@ IS(crop_daystogermination); IS(crop_daystofullcanopysf);
 IS(crop_daystosenescence); IS(crop_daystoharvest);
 IS(crop_gddaystogermination); IS(crop_gddaystofullcanopysf);
 IS(crop_gddaystosenescence); IS(crop_gddaystoharvest);
+IS(crop_gddaystoflowering); IS(crop_gddlengthflowering);
 IS(crop_sumetodelaysenescence); IS(simulation_delayeddays);
 IS(simulation_protectedseedling); IS(simulation_swctopsoilconsidered);
 IS(simulation_evaplimiton);
@@ -53,6 +54,7 @@ int main(int argc, char **argv) {
     double previous, initial_adjusted, maximum_adjusted, time, top, withered, sumeto;
     double fertility_decline = 0.;
     int virtual_start = 10;
+    int final_growth = 1920, full_sf = 600, senescence_gdd = 1920, maturity_gdd = 2200;
     if (scanf("%d%lf%lf%lf%lf%d%d%lf%lf%d%lf%d%d", &count, &cco, &ccx,
         &growth, &decline, &rg, &rc, &psen, &shape, &fao, &factor, &beta, &delay) != 13
         || count < 1 || count > 10000 || rg < 0 || rg > 100 || rc < 0 || rc > 100
@@ -63,8 +65,16 @@ int main(int argc, char **argv) {
     if (argc > 1 && strcmp(argv[1], "--fertility-decline") == 0) {
         if (scanf("%lf%d", &fertility_decline, &virtual_start) != 2) return 2;
     }
+    if (argc > 1 && strcmp(argv[1], "--nonexpanding") == 0) {
+        if (scanf("%lf%d%d%d%d%d", &fertility_decline, &virtual_start, &final_growth,
+            &full_sf, &senescence_gdd, &maturity_gdd) != 6) return 2;
+    }
 
     B(crop_modecycle, 0); B(crop_subkind, 0); I(crop_determinancylinked, 0);
+    if (final_growth < senescence_gdd) {
+        B(crop_subkind, 1); I(crop_determinancylinked, 1);
+        I(crop_gddaystoflowering, final_growth); I(crop_gddlengthflowering, 0);
+    }
     B(crop_pmethod, fao); D(crop_pleafdeful, .15); D(crop_pleafdefll, .55);
     D(crop_psenescence, psen); D(crop_ksshapefactorleaf, 3.);
     D(crop_ksshapefactorsenescence, shape);
@@ -75,8 +85,8 @@ int main(int argc, char **argv) {
     I(crop_daystoccini, 0); I(crop_daystogermination, 1);
     I(crop_daystofullcanopysf, 60); I(crop_daystosenescence, 180);
     I(crop_daystoharvest, 210); I(crop_gddaystogermination, 5);
-    I(crop_gddaystofullcanopysf, 600); I(crop_gddaystosenescence, 1920);
-    I(crop_gddaystoharvest, 2200); I(crop_sumetodelaysenescence, delay);
+    I(crop_gddaystofullcanopysf, full_sf); I(crop_gddaystosenescence, senescence_gdd);
+    I(crop_gddaystoharvest, maturity_gdd); I(crop_sumetodelaysenescence, delay);
     D(simulparam_padjfao, factor); B(simulparam_beta, beta);
     B(simulation_effectstress_redcgc, rg); B(simulation_effectstress_redccx, rc);
     D(simulation_effectstress_cdecline, fertility_decline); I(simulation_delayeddays, 0);

@@ -258,6 +258,59 @@ def early_vegetative_gdd_step(
     return next_state, stress, valid
 
 
+def nonexpanding_canopy_gdd_step(state, cumulative_gdd, final_growth_gdd,
+        full_canopy_sf_gdd, senescence_gdd, maturity_gdd, maximum_cover,
+        stress_maximum_cover, decline_coefficient, fertility_decline_cap,
+        fertility_canopy_decline, days_per_gdd):
+    """DetermineCCiGDD step 3, after potential vegetative growth ends.
+
+    Returns the canopy before water senescence, with persistent CCxAdjusted.
+    The caller must still apply water senescence/rewatering and native steps
+    5--7 (withered maximum, late no-increase guard and no-more-crop flag).
+    A false validity flag forbids consuming the state outside this phase.
+    """
+    (gdd, final, full, senescence, maturity, maximum, stress_maximum,
+     decline, cap, fertility_decline, ratio) = [jnp.asarray(v, F64) for v in
+        (cumulative_gdd, final_growth_gdd, full_canopy_sf_gdd,
+         senescence_gdd, maturity_gdd, maximum_cover, stress_maximum_cover,
+         decline_coefficient, fertility_decline_cap, fertility_canopy_decline,
+         days_per_gdd)]
+    valid = (gdd >= final) & (round_fortran(gdd) <= maturity)
+
+    def active(_):
+        adjusted_maximum = jnp.where(state.maximum_adjusted < 0.,
+                                     state.cover, state.maximum_adjusted)
+
+        def midseason(_):
+            return jnp.minimum(adjusted_maximum, cap), adjusted_maximum
+
+        def late(_):
+            adjusted = jnp.minimum(adjusted_maximum, cap)
+            def developed(_):
+                continued = lax.cond(senescence <= full,
+                    lambda _: state.cover,
+                    lambda _: stress_maximum - (ratio * fertility_decline / 100.) * (
+                        jnp.exp(2. * jnp.log(gdd - full)) / (senescence - full)), None)
+                cdc = decline * ((adjusted + 2.29) / (maximum + 2.29))
+                small = cdc <= jnp.finfo(F64).eps
+                length = jnp.where(small, -9., round_fortran(
+                    ((adjusted + 2.29) / (jnp.where(small, 1., cdc) * 3.33)) *
+                    jnp.log(1. + 1. / .05) + .50))
+                cover = adjusted * (1. - .05 * (
+                    jnp.exp((gdd - senescence) * 3.33 * cdc / (adjusted + 2.29)) - 1.))
+                return jnp.where((continued < 0.) | (gdd >= senescence + length),
+                                  0., jnp.minimum(continued, cover))
+            cover = lax.cond(adjusted < .01, lambda _: jnp.asarray(0., F64), developed, None)
+            return cover, adjusted
+
+        cover, maximum_adjusted = lax.cond(gdd < senescence, midseason, late, None)
+        return EarlyVegetativeCanopyState(cover, state.initial_adjusted,
+                                          maximum_adjusted, state.protected)
+
+    result = lax.cond(valid, active, lambda _: state, None)
+    return result, jnp.where(valid, -33., -9.).astype(F64), valid
+
+
 def early_water_senescence_gdd_step(
         state, canopy, previous_cover, cumulative_gdd, daily_gdd,
         emergence_gdd, senescence_gdd, final_growth_gdd,
