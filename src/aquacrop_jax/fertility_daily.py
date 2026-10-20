@@ -39,6 +39,7 @@ class PreparedDailyFertility:
     record_daily_gdd: jax.Array
     first_offset: int
     last_virtual_day: int
+    actual_calendar_decline: jax.Array
 
 
 def prepare_seeded_forage_daily(project_file, run):
@@ -49,6 +50,7 @@ def prepare_seeded_forage_daily(project_file, run):
     calibrate biomass without repeating it. Both calendars stay explicit.
     """
     from .climate import _reference, date_to_day_number
+    from .actual_calendar import calendar_decline_from_record
     from .fertility_calibration import prepare_seeded_forage_reference
     from .kernels import degrees_day
     from .legacy import read_annotated_values, read_climate_series
@@ -72,8 +74,13 @@ def prepare_seeded_forage_daily(project_file, run):
     daily = degrees_day(value('Base temperature'), value('Upper temperature'),
                         temperature[:, 0], temperature[:, 1], reference.gdd_method)
     record_start = date_to_day_number(date(series.first_year, series.first_month, series.first_day))
+    offset = run.crop_first_day - record_start
+    decline = calendar_decline_from_record(daily, parameters.maximum_cover,
+        reference.parameters.thermal_decline, thermal[2], thermal[3], calendar[2], offset)
+    if not bool(decline.valid):
+        raise ValueError('Actual climate cannot produce a finite canopy decline coefficient')
     return PreparedDailyFertility(reference, parameters, daily,
-        run.crop_first_day - record_start, run.crop_last_day - run.crop_first_day)
+        offset, run.crop_last_day - run.crop_first_day, decline.coefficient)
 
 
 def daily_fertility_no_salinity_step(stress_pct, virtual_time, germinated,

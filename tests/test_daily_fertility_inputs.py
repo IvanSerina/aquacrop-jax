@@ -68,6 +68,10 @@ def test_raw_inputs_match_native_without_native_execution_or_fixtures(monkeypatc
     assert_native(prepared, NATIVE)
     assert prepared.reference.loaded_calendar_days == (1, 39, 164, 164)
     np.testing.assert_array_equal(prepared.reference.parameters.calendar_days, [1, 40, 164, 164])
+    np.testing.assert_allclose(prepared.actual_calendar_decline,
+        .0027272727272727696, rtol=0., atol=1e-14)
+    np.testing.assert_allclose(prepared.reference.parameters.calendar_decline,
+        .030000000000000467, rtol=0., atol=1e-14)
 
 
 @pytest.mark.parametrize('determinacy', [1, 2])
