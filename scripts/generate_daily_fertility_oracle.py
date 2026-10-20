@@ -24,7 +24,8 @@ def cases():
     return rows
 
 
-def generate(target_output):
+def generate(target_output, testcase_root=None):
+    input_root = REFERENCE / 'testcase' if testcase_root is None else Path(testcase_root)
     objects = sorted(p for p in (REFERENCE / 'src').glob('*.o') if p.name != 'aquacrop.o')
     if not objects:
         raise RuntimeError('Prebuilt original native objects required')
@@ -32,7 +33,7 @@ def generate(target_output):
     with tempfile.TemporaryDirectory(prefix='native-daily-fertility-') as temporary:
         work = Path(temporary)
         testcase, probe = work / 'case', work / 'probe'
-        shutil.copytree(REFERENCE / 'testcase', testcase,
+        shutil.copytree(input_root, testcase,
                         ignore=shutil.ignore_patterns('OUTP', 'OUTP_REF'))
         (testcase / 'OUTP').mkdir()
         built = subprocess.run(['gfortran', '-O0', '-I', str(REFERENCE / 'src'), '-o', str(probe),
@@ -69,7 +70,7 @@ def generate(target_output):
         output_fields=('stress_pct', 'full_canopy_day', 'full_canopy_gdd',
             'reduction_growth_pct', 'reduction_cover_pct', 'reduction_wp_pct',
             'reduction_stomatal_pct', 'canopy_decline'),
-        input_sha256={path: hashlib.sha256((REFERENCE / 'testcase' / path).read_bytes()).hexdigest()
+        input_sha256={path: hashlib.sha256((input_root / path).read_bytes()).hexdigest()
                       for path in ('LIST/Ottawa.PRM', 'DATA/AlfOttawaGDD.CRO', 'DATA/Ottawa.Tnx',
                                    'DATA/Ottawa.MAN', 'PARAM/Ottawa.PPn')},
         source_sha256={name: hashlib.sha256((REFERENCE / 'src' / name).read_bytes()).hexdigest()
@@ -83,4 +84,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path,
         default=ROOT / 'tests/fixtures/daily_fertility_fortran73.json')
-    generate(parser.parse_args().output)
+    parser.add_argument('--testcase', type=Path)
+    args = parser.parse_args()
+    generate(args.output, args.testcase)

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+message="${*:-checkpoint: periodic save}"
+
+if ! git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Checkpoint ignorato: $root non è un repository Git." >&2
+    exit 69
+fi
+
+mkdir -p "$root/.sequence3/git"
+stamp="$(date -u +%Y%m%d-%H%M%S)"
+
+git -C "$root" status --short \
+    >"$root/.sequence3/git/pre-checkpoint-$stamp.status.txt"
+git -C "$root" diff --binary \
+    >"$root/.sequence3/git/pre-checkpoint-$stamp.diff.patch"
+
+if [[ -z "$(git -C "$root" status --porcelain)" ]]; then
+    echo "Nessuna modifica da salvare."
+    exit 0
+fi
+
+git -C "$root" diff --check
+git -C "$root" add -A -- . \
+    ':(exclude).sequence3' \
+    ':(exclude).env.local' \
+    ':(exclude)OUTP_JAX'
+
+if git -C "$root" diff --cached --quiet; then
+    echo "Nessuna modifica versionabile da salvare."
+    exit 0
+fi
+
+git -C "$root" commit -m "$message"
+git -C "$root" log -1 --oneline

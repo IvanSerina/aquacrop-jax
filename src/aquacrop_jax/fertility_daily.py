@@ -1,4 +1,7 @@
 """Actual-calendar daily fertility forcing before the water/canopy budget."""
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
 from typing import NamedTuple
 
 import jax
@@ -27,6 +30,51 @@ class DailyFertilityResponse(NamedTuple):
     full_canopy_gdd: jax.Array
     stress_pct: jax.Array
     valid: jax.Array
+
+
+@dataclass(frozen=True)
+class PreparedDailyFertility:
+    reference: object
+    parameters: DailyFertilityParameters
+    record_daily_gdd: jax.Array
+    first_offset: int
+    last_virtual_day: int
+
+
+def prepare_seeded_forage_daily(project_file, run):
+    """Build actual daily SF parameters from legacy inputs, without an oracle.
+
+    The same first-year sown-forage/daily-temperature scope as reference
+    preparation applies. Returning that reference preparation lets the caller
+    calibrate biomass without repeating it. Both calendars stay explicit.
+    """
+    from .climate import _reference, date_to_day_number
+    from .fertility_calibration import prepare_seeded_forage_reference
+    from .kernels import degrees_day
+    from .legacy import read_annotated_values, read_climate_series
+
+    project_file = Path(project_file)
+    reference = prepare_seeded_forage_reference(project_file, run)
+    crop = read_annotated_values(_reference(run, 'Crop').resolve(project_file))
+    def value(prefix):
+        return next(v for key, v in crop.items() if key.startswith(prefix))
+    calendar, thermal = reference.loaded_calendar_days, reference.parameters.thermal_days
+    if calendar[1] <= 0:
+        raise ValueError('Actual crop calendar has no valid full-canopy day')
+    # AdjustCalendarDays divides first, then multiplies; reference CGC differs.
+    growth = (float(thermal[1]) / float(calendar[1])) * reference.parameters.thermal_growth
+    parameters = DailyFertilityParameters(calendar, thermal,
+        reference.parameters.initial_cover, reference.parameters.maximum_cover, growth,
+        int(value('Calendar Days: from sowing to flowering')),
+        int(value('Length of the flowering stage (days)')),
+        bool(value('Crop determinancy')), reference.parameters.fertility_shapes)
+    series = read_climate_series(_reference(run, 'Temperature').resolve(project_file), 2)
+    temperature = jnp.asarray(series.values, jnp.float64)
+    daily = degrees_day(value('Base temperature'), value('Upper temperature'),
+                        temperature[:, 0], temperature[:, 1], reference.gdd_method)
+    record_start = date_to_day_number(date(series.first_year, series.first_month, series.first_day))
+    return PreparedDailyFertility(reference, parameters, daily,
+        run.crop_first_day - record_start, run.crop_last_day - run.crop_first_day)
 
 
 def daily_fertility_no_salinity_step(stress_pct, virtual_time, germinated,

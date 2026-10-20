@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+
+[[ ! -f .venv/bin/activate ]] || source .venv/bin/activate
+[[ ! -f .env.local ]] || source .env.local
+export AQUACROP_AUTOCOMMIT=1
+
+export CUDA_VISIBLE_DEVICES=""
+export NVIDIA_VISIBLE_DEVICES="none"
+export JAX_PLATFORMS="cpu"
+export JAX_PLATFORM_NAME="cpu"
+export XLA_PYTHON_CLIENT_PREALLOCATE="false"
+
+command -v codex >/dev/null 2>&1 || {
+    echo "codex non disponibile nel PATH" >&2
+    exit 69
+}
+
+for required in AGENTS-cloud.md PROMPT_CLOUD.md PROMPT_CLOUD_CPU.md; do
+    [[ -r "$root/$required" ]] || {
+        echo "File mancante o non leggibile: $root/$required" >&2
+        exit 66
+    }
+done
+
+prompt="$(printf '%s\n\n%s\n\n%s\n' \
+    "$(cat "$root/AGENTS-cloud.md")" \
+    "$(cat "$root/PROMPT_CLOUD.md")" \
+    "$(cat "$root/PROMPT_CLOUD_CPU.md")")"
+
+exec codex \
+    --profile aquacrop-cloud \
+    --cd "$root" \
+    --sandbox workspace-write \
+    "$prompt"

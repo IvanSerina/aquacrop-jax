@@ -204,8 +204,13 @@ def prepare_seeded_forage_reference(project_file: Path, run):
     native_sp = temperature.astype(jnp.float32).astype(F64)
     calendar_gdd = degrees_day(base, upper, native_sp[:, 0], native_sp[:, 1], method)
     thermal = (emergence_gdd, full_gdd, sen_gdd, end_gdd)
-    calendar = gdd_reference_calendar(calendar_gdd, loaded_calendar + (0, 0),
-        thermal + (0, 0), growth, value("CDC for GGDays"), maximum,
+    flower = int(value("Calendar Days: from sowing to flowering"))
+    flower_length = int(value("Length of the flowering stage (days)"))
+    gflower = int(value("GDDays: from sowing to flowering"))
+    gflower_length = int(value("Length of the flowering stage (growing degree days)"))
+    determinacy = bool(value("Crop determinancy"))
+    calendar = gdd_reference_calendar(calendar_gdd, loaded_calendar + (flower, flower_length),
+        thermal + (gflower, gflower_length), growth, value("CDC for GGDays"), maximum,
         value("Reference Harvest Index"), value("GDDays: building-up of Harvest Index"),
         forage_crop=True)
     if not bool(calendar.valid):
@@ -225,6 +230,8 @@ def prepare_seeded_forage_reference(project_file: Path, run):
         value("Minimum growing degrees required for full crop transpiration"),
         value("Water Productivity normalized for ETo and CO2 (WP*)"), shapes,
         wp_yield_pct=value("Water Productivity normalized for ETo and CO2 during yield formation"),
+        flowering_day=calendar.flowering_day, flowering_length=calendar.flowering_length,
+        determinacy_linked=determinacy,
         senescence_exponent=senescence_exponent)
     return PreparedFertilityReference(daily_gdd, calendar_gdd, p, calendar,
         loaded_calendar, field_fertility_stress(path("Field management")), year, method)
