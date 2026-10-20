@@ -31,6 +31,42 @@ class FertilityStressUpdate(NamedTuple):
     sum_kc_top_stress: jax.Array
 
 
+class FertilityWaterProductivity(NamedTuple):
+    water_productivity: jax.Array
+    sum_kci: jax.Array
+    biomass_increment: jax.Array
+
+
+def fertility_water_productivity_step(water_productivity, sum_kci,
+        sum_kc_top_stress, reduction_pct, actual_transpiration, eto):
+    """Native fertility WP recurrence in DetermineBiomassAndYield.
+
+    WP is in ton/ha per normalized transpiration, already adjusted for CO2
+    and reproductive stage. The threshold tests the previous cumulative Kc;
+    the reduction uses its updated value without clipping overshoot. Once
+    the threshold is reached, positive fertility reduction freezes SumKci.
+    ETo <= 0 preserves both inputs, as the enclosing native guard requires.
+    This operator excludes weeds, assimilate transfers and harvest index.
+    """
+    wp, cumulative, top, reduction, actual, eto = [jnp.asarray(value, F64)
+        for value in (water_productivity, sum_kci, sum_kc_top_stress,
+                      reduction_pct, actual_transpiration, eto)]
+    active = eto > 0.0
+    normalized = actual / jnp.where(active, eto, 1.0)
+    reduced = reduction > 0.0
+    below = cumulative / top < 1.0 - jnp.finfo(F64).eps
+    updated = jnp.where(active & ((~reduced) | below),
+                        cumulative + normalized, cumulative)
+    # The source evaluates log only for a strictly positive updated sum.
+    ratio = jnp.where(updated > 0.0, updated / top, 1.0)
+    progressive = jnp.where(updated > 0.0,
+        1.0 - reduction / 100.0 * jnp.exp(2.0 * jnp.log(ratio)), 1.0)
+    factor = jnp.where(below, progressive, 1.0 - reduction / 100.0)
+    adjusted = wp * jnp.where(active & reduced, factor, 1.0)
+    increment = jnp.where(active, adjusted * normalized, 0.0)
+    return FertilityWaterProductivity(adjusted, updated, increment)
+
+
 def dynamic_fertility_stress_step(
         biomass_total, biomass_unlimited, potential_biomass_fraction,
         coefficient0, coefficient1, coefficient2, management_stress_pct,

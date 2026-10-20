@@ -35,7 +35,13 @@ program fertility_stress_probe
     real(dp) :: b0, b1, b2, salt_b0, salt_b1, salt_b2, salt_stress
     real(dp) :: sum_gdd, cc, eto, tact
     logical :: store_assimilates, mobilize_assimilates, calibrated_logical
+    logical :: probe_wp
+    character(len=32) :: mode
+    integer(int8) :: reduction_wp
+    real(dp) :: initial_sum_kci, initial_top_stress
 
+    call get_command_argument(1, mode)
+    probe_wp = trim(mode) == '--fertility-wp'
     read(*, *) count
     call SetCrop_subkind(subkind_Forage)
     call SetCrop_Planting(plant_regrowth)
@@ -108,6 +114,12 @@ program fertility_stress_probe
         alfa_max = 0._dp
         sum_kctop_stress = 0._dp
         sum_kci = 0._dp
+        if (probe_wp) then
+            read(*, *) reduction_wp, initial_sum_kci, initial_top_stress
+            call SetSimulation_EffectStress_RedWP(reduction_wp)
+            sum_kci = initial_sum_kci
+            sum_kctop_stress = initial_top_stress
+        end if
         weed_rc = 0._dp
         ccw = 0._dp
         trw = 0._dp
@@ -139,7 +151,11 @@ program fertility_stress_probe
             store_assimilates, mobilize_assimilates, to_mobilize, mobilized, &
             bin, bout, testval)
 
-        write(*, '(i0,1x,i0,1x,3(es24.16,1x))') stress, previous, total, &
-            unlimited, sum_kctop_stress
+        if (probe_wp) then
+            write(*, '(3(es24.16,1x))') wp, sum_kci, biomass
+        else
+            write(*, '(i0,1x,i0,1x,3(es24.16,1x))') stress, previous, total, &
+                unlimited, sum_kctop_stress
+        end if
     end do
 end program fertility_stress_probe
