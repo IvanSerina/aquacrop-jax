@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from typing import NamedTuple
 
 import jax.numpy as jnp
+import jax
 from jax import lax
 import numpy as np
 
@@ -13,6 +14,39 @@ from .rounding import round_fortran
 class MonthlyReferenceTemperature(NamedTuple):
     temperature: np.ndarray
     reference_year: int
+
+
+class ReferenceCalendarDays(NamedTuple):
+    days: jax.Array
+    valid: jax.Array
+
+
+def reference_calendar_days(daily_gdd, target_gdd, *, start_offset=0):
+    """Array branch of SumCalendarDaysReferenceTnx, with its native 364-day cycle.
+
+    GDD must come from the native real(sp) reference-temperature storage,
+    which differs from the CLI file-based GDD used for Bnormalized. The last
+    consumed day is counted using the native overshoot ratio and roundc, not
+    the ordinary simulation calendar rule. A positive target with no heat
+    returns valid=False instead of reproducing the native infinite loop.
+    """
+    daily = jnp.asarray(daily_gdd, jnp.float64)
+    if daily.shape != (365,):
+        raise ValueError("Reference calendar requires 365 daily GDD values")
+    target = jnp.asarray(target_gdd, jnp.int32).astype(jnp.float64)
+    heat = jnp.any(daily[:364] > 0.)
+
+    def step(state):
+        remaining, count, index = state
+        value = daily[index]
+        safe_remaining = jnp.where(remaining > .1, remaining, 1.)
+        overshoot = jnp.where(value > remaining,
+            round_fortran((value - remaining) / safe_remaining) >= 1., True)
+        return remaining - value, count + overshoot.astype(jnp.int32), (index + 1) % 364
+
+    initial = (target, jnp.int32(0), jnp.asarray(start_offset, jnp.int32) % 364)
+    _, count, _ = lax.while_loop(lambda s: (s[0] > .1) & heat, step, initial)
+    return ReferenceCalendarDays(count, (target <= 0.) | heat)
 
 
 def reference_monthly_temperature(series):

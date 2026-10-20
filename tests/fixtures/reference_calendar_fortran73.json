@@ -1,0 +1,786 @@
+{
+  "source": "Native global.f90::SumCalendarDaysReferenceTnx; SP array branch",
+  "source_sha256": "c714bbf2a6cb5ccb37dcc4c965dc2b6cd70308d7bc92e21c82711f9b3472f179",
+  "objects_sha256": {
+    "climprocessing.o": "5548eda651daba41f1efc2ce909669742c5030500af25405e02a3ef9083f2ad7",
+    "defaultcropsoil.o": "29e5330cb8edd2055bdc2e00599c78213ee6a7db3469c24062534122b4464032",
+    "global.o": "382c34f02db0d96318b1992aeb8c8788bade5b5cd240b863a2cc8ef668d00a4e",
+    "inforesults.o": "afa201dd9b7a5a3415b0eaa05e24e68acee361e173f91cc11c53750c1c33294d",
+    "initialsettings.o": "234185f2c21be401609a04c03f2605eb6b01e7e2a40cb9e35b6274ba700cd301",
+    "kinds.o": "4198d9ae5130b7c21fb252183a192ed57ba8413e77048695b4cfe971412f5407",
+    "preparefertilitysalinity.o": "03fe768b79456c42076e4f78dd5da13048991215b4eeb6811fab9a06e3439478",
+    "project_input.o": "ca7c96d422a50f3578a4ea2c03f16556a32a78738ff29ef4f2102ab2605b1184",
+    "rootunit.o": "573b5bb8d3ed5ba9fc5e1300f0cdcc6bc57e7d71f1f6ce72b79ded2799e89203",
+    "run.o": "e67973a4016ee4171a79b3f17374e9c54fc5cb7483ce5cad8def53b1fb8671dc",
+    "simul.o": "c9e5ba4e42994ea646d9e1af0f5fa7672d6bff87922c8f73e89ddf4bb5394234",
+    "startunit.o": "c387de9b64c8f0e46eddbbdf4b9a8c7e1d1b0a71fed4b27fe3085a513fa316c0",
+    "tempprocessing.o": "d58629fc4582c5f56fdb65e34ba34ecdc4d924a8a15ac27e76c35b4853479275",
+    "utils.o": "b9523e8e8a510994915a315a102e989afdc2df9d055d179e17b5320c0dfda586"
+  },
+  "input_fields": [
+    "target_gdd",
+    "start_offset",
+    "pattern",
+    "first_temperature",
+    "second_temperature",
+    "last_temperature"
+  ],
+  "cases": [
+    {
+      "name": "constant-6.0-target-0",
+      "input": [
+        0,
+        0,
+        0,
+        6.0,
+        6.0,
+        30.0
+      ],
+      "days": 0
+    },
+    {
+      "name": "constant-6.0-target-1",
+      "input": [
+        1,
+        0,
+        0,
+        6.0,
+        6.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-6.0-target-5",
+      "input": [
+        5,
+        0,
+        0,
+        6.0,
+        6.0,
+        30.0
+      ],
+      "days": 5
+    },
+    {
+      "name": "constant-6.0-target-10",
+      "input": [
+        10,
+        0,
+        0,
+        6.0,
+        6.0,
+        30.0
+      ],
+      "days": 10
+    },
+    {
+      "name": "constant-6.0-target-47",
+      "input": [
+        47,
+        0,
+        0,
+        6.0,
+        6.0,
+        30.0
+      ],
+      "days": 47
+    },
+    {
+      "name": "constant-6.0-target-461",
+      "input": [
+        461,
+        0,
+        0,
+        6.0,
+        6.0,
+        30.0
+      ],
+      "days": 461
+    },
+    {
+      "name": "constant-12.0-target-0",
+      "input": [
+        0,
+        0,
+        0,
+        12.0,
+        12.0,
+        30.0
+      ],
+      "days": 0
+    },
+    {
+      "name": "constant-12.0-target-1",
+      "input": [
+        1,
+        0,
+        0,
+        12.0,
+        12.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-12.0-target-5",
+      "input": [
+        5,
+        0,
+        0,
+        12.0,
+        12.0,
+        30.0
+      ],
+      "days": 0
+    },
+    {
+      "name": "constant-12.0-target-10",
+      "input": [
+        10,
+        0,
+        0,
+        12.0,
+        12.0,
+        30.0
+      ],
+      "days": 2
+    },
+    {
+      "name": "constant-12.0-target-47",
+      "input": [
+        47,
+        0,
+        0,
+        12.0,
+        12.0,
+        30.0
+      ],
+      "days": 6
+    },
+    {
+      "name": "constant-12.0-target-461",
+      "input": [
+        461,
+        0,
+        0,
+        12.0,
+        12.0,
+        30.0
+      ],
+      "days": 65
+    },
+    {
+      "name": "constant-13.0-target-0",
+      "input": [
+        0,
+        0,
+        0,
+        13.0,
+        13.0,
+        30.0
+      ],
+      "days": 0
+    },
+    {
+      "name": "constant-13.0-target-1",
+      "input": [
+        1,
+        0,
+        0,
+        13.0,
+        13.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-13.0-target-5",
+      "input": [
+        5,
+        0,
+        0,
+        13.0,
+        13.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-13.0-target-10",
+      "input": [
+        10,
+        0,
+        0,
+        13.0,
+        13.0,
+        30.0
+      ],
+      "days": 2
+    },
+    {
+      "name": "constant-13.0-target-47",
+      "input": [
+        47,
+        0,
+        0,
+        13.0,
+        13.0,
+        30.0
+      ],
+      "days": 5
+    },
+    {
+      "name": "constant-13.0-target-461",
+      "input": [
+        461,
+        0,
+        0,
+        13.0,
+        13.0,
+        30.0
+      ],
+      "days": 58
+    },
+    {
+      "name": "constant-19.999-target-0",
+      "input": [
+        0,
+        0,
+        0,
+        19.999,
+        19.999,
+        30.0
+      ],
+      "days": 0
+    },
+    {
+      "name": "constant-19.999-target-1",
+      "input": [
+        1,
+        0,
+        0,
+        19.999,
+        19.999,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-19.999-target-5",
+      "input": [
+        5,
+        0,
+        0,
+        19.999,
+        19.999,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-19.999-target-10",
+      "input": [
+        10,
+        0,
+        0,
+        19.999,
+        19.999,
+        30.0
+      ],
+      "days": 0
+    },
+    {
+      "name": "constant-19.999-target-47",
+      "input": [
+        47,
+        0,
+        0,
+        19.999,
+        19.999,
+        30.0
+      ],
+      "days": 4
+    },
+    {
+      "name": "constant-19.999-target-461",
+      "input": [
+        461,
+        0,
+        0,
+        19.999,
+        19.999,
+        30.0
+      ],
+      "days": 30
+    },
+    {
+      "name": "constant-20.0-target-0",
+      "input": [
+        0,
+        0,
+        0,
+        20.0,
+        20.0,
+        30.0
+      ],
+      "days": 0
+    },
+    {
+      "name": "constant-20.0-target-1",
+      "input": [
+        1,
+        0,
+        0,
+        20.0,
+        20.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-20.0-target-5",
+      "input": [
+        5,
+        0,
+        0,
+        20.0,
+        20.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-20.0-target-10",
+      "input": [
+        10,
+        0,
+        0,
+        20.0,
+        20.0,
+        30.0
+      ],
+      "days": 0
+    },
+    {
+      "name": "constant-20.0-target-47",
+      "input": [
+        47,
+        0,
+        0,
+        20.0,
+        20.0,
+        30.0
+      ],
+      "days": 4
+    },
+    {
+      "name": "constant-20.0-target-461",
+      "input": [
+        461,
+        0,
+        0,
+        20.0,
+        20.0,
+        30.0
+      ],
+      "days": 30
+    },
+    {
+      "name": "constant-20.001-target-0",
+      "input": [
+        0,
+        0,
+        0,
+        20.001,
+        20.001,
+        30.0
+      ],
+      "days": 0
+    },
+    {
+      "name": "constant-20.001-target-1",
+      "input": [
+        1,
+        0,
+        0,
+        20.001,
+        20.001,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-20.001-target-5",
+      "input": [
+        5,
+        0,
+        0,
+        20.001,
+        20.001,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-20.001-target-10",
+      "input": [
+        10,
+        0,
+        0,
+        20.001,
+        20.001,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-20.001-target-47",
+      "input": [
+        47,
+        0,
+        0,
+        20.001,
+        20.001,
+        30.0
+      ],
+      "days": 4
+    },
+    {
+      "name": "constant-20.001-target-461",
+      "input": [
+        461,
+        0,
+        0,
+        20.001,
+        20.001,
+        30.0
+      ],
+      "days": 30
+    },
+    {
+      "name": "constant-5.95-target-0",
+      "input": [
+        0,
+        0,
+        0,
+        5.95,
+        5.95,
+        30.0
+      ],
+      "days": 0
+    },
+    {
+      "name": "constant-5.95-target-1",
+      "input": [
+        1,
+        0,
+        0,
+        5.95,
+        5.95,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-5.95-target-5",
+      "input": [
+        5,
+        0,
+        0,
+        5.95,
+        5.95,
+        30.0
+      ],
+      "days": 6
+    },
+    {
+      "name": "constant-5.95-target-10",
+      "input": [
+        10,
+        0,
+        0,
+        5.95,
+        5.95,
+        30.0
+      ],
+      "days": 11
+    },
+    {
+      "name": "constant-5.95-target-47",
+      "input": [
+        47,
+        0,
+        0,
+        5.95,
+        5.95,
+        30.0
+      ],
+      "days": 50
+    },
+    {
+      "name": "constant-5.95-target-461",
+      "input": [
+        461,
+        0,
+        0,
+        5.95,
+        5.95,
+        30.0
+      ],
+      "days": 486
+    },
+    {
+      "name": "constant-5.99-target-0",
+      "input": [
+        0,
+        0,
+        0,
+        5.99,
+        5.99,
+        30.0
+      ],
+      "days": 0
+    },
+    {
+      "name": "constant-5.99-target-1",
+      "input": [
+        1,
+        0,
+        0,
+        5.99,
+        5.99,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "constant-5.99-target-5",
+      "input": [
+        5,
+        0,
+        0,
+        5.99,
+        5.99,
+        30.0
+      ],
+      "days": 5
+    },
+    {
+      "name": "constant-5.99-target-10",
+      "input": [
+        10,
+        0,
+        0,
+        5.99,
+        5.99,
+        30.0
+      ],
+      "days": 11
+    },
+    {
+      "name": "constant-5.99-target-47",
+      "input": [
+        47,
+        0,
+        0,
+        5.99,
+        5.99,
+        30.0
+      ],
+      "days": 48
+    },
+    {
+      "name": "constant-5.99-target-461",
+      "input": [
+        461,
+        0,
+        0,
+        5.99,
+        5.99,
+        30.0
+      ],
+      "days": 466
+    },
+    {
+      "name": "alternating-offset-0-target-1",
+      "input": [
+        1,
+        0,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "alternating-offset-363-target-1",
+      "input": [
+        1,
+        363,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "alternating-offset-364-target-1",
+      "input": [
+        1,
+        364,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "alternating-offset-0-target-5",
+      "input": [
+        5,
+        0,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "alternating-offset-363-target-5",
+      "input": [
+        5,
+        363,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "alternating-offset-364-target-5",
+      "input": [
+        5,
+        364,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 1
+    },
+    {
+      "name": "alternating-offset-0-target-10",
+      "input": [
+        10,
+        0,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 4
+    },
+    {
+      "name": "alternating-offset-363-target-10",
+      "input": [
+        10,
+        363,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 2
+    },
+    {
+      "name": "alternating-offset-364-target-10",
+      "input": [
+        10,
+        364,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 4
+    },
+    {
+      "name": "alternating-offset-0-target-500",
+      "input": [
+        500,
+        0,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 168
+    },
+    {
+      "name": "alternating-offset-363-target-500",
+      "input": [
+        500,
+        363,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 167
+    },
+    {
+      "name": "alternating-offset-364-target-500",
+      "input": [
+        500,
+        364,
+        1,
+        6.0,
+        10.0,
+        30.0
+      ],
+      "days": 168
+    },
+    {
+      "name": "sparse-heat-skip-last-target-2",
+      "input": [
+        2,
+        0,
+        2,
+        5.0,
+        6.0,
+        30.0
+      ],
+      "days": 365
+    },
+    {
+      "name": "sparse-heat-skip-last-target-10",
+      "input": [
+        10,
+        0,
+        2,
+        5.0,
+        6.0,
+        30.0
+      ],
+      "days": 3277
+    },
+    {
+      "name": "negative-target",
+      "input": [
+        -1,
+        0,
+        0,
+        5.0,
+        5.0,
+        30.0
+      ],
+      "days": 0
+    }
+  ]
+}
