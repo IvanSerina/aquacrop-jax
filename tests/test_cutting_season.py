@@ -25,10 +25,11 @@ FIXTURE = json.loads((ROOT / 'tests/fixtures/cutting_season_fortran73.json').rea
 
 
 def test_original_daily_loop_cuts_match_manual_schedule_and_legacy_records():
-    run = read_project(TESTCASE / 'LIST/Ottawa.PRM').runs[0]
-    schedule = manual_cuttings(TESTCASE / 'DATA/Ottawa.MAN', run.crop_first_day)
+    project = read_project(TESTCASE / 'LIST/Ottawa.PRM')
+    schedule = manual_cuttings(TESTCASE / 'DATA/Ottawa.MAN', project.runs[0].crop_first_day)
     expected_days = [day for day in schedule.day_numbers
-                     if run.simulation_first_day <= day <= run.simulation_last_day]
+                     if any(run.simulation_first_day <= day <= run.simulation_last_day
+                            for run in project.runs)]
     events = FIXTURE['events']
     np.testing.assert_array_equal([row['daynr'] for row in events], expected_days)
     legacy = []
@@ -40,10 +41,10 @@ def test_original_daily_loop_cuts_match_manual_schedule_and_legacy_records():
             number, day, month, year, dap, interval = map(int, fields[:6])
         except ValueError:
             continue
-        if year == 2014 and 0 < number < 9999:
+        if 2014 <= year <= 2016 and 0 < number < 9999:
             legacy.append((date_to_day_number(date(year, month, day)), number, dap, interval,
                            *map(float, fields[6:10])))
-    assert len(events) == len(legacy) == 2
+    assert len(events) == len(legacy) == 8
     for event, record in zip(events, legacy, strict=True):
         np.testing.assert_array_equal([event[k] for k in
             ('daynr', 'count', 'last_cut_day', 'interval_days')], record[:4])
@@ -51,17 +52,21 @@ def test_original_daily_loop_cuts_match_manual_schedule_and_legacy_records():
         np.testing.assert_allclose([event[k] for k in ('biomass_harvested',
             'cumulative_biomass', 'yield_harvested', 'cumulative_yield')],
             record[4:], rtol=0., atol=.000500000001)
-        assert event['actual_cover'] > event['cut_cover_pct'] / 100.
-        assert event['previous_cover'] == event['maximum_adjusted'] == .25
-        assert event['withered_cover'] == event['potential_withered_cover'] == 0.
+        if event['actual_cover'] > event['cut_cover_pct'] / 100.:
+            assert event['previous_cover'] == event['maximum_adjusted'] == .25
+            assert event['withered_cover'] == event['potential_withered_cover'] == 0.
         assert event['previous_biomass_after_cut'] == event['cumulative_biomass']
         assert event['previous_yield_after_cut'] == event['cumulative_yield']
 
 
 def test_cutting_records_match_raw_original_season_masses():
     previous_biomass, previous_yield, previous_day = 0., 0., -9
+    previous_run = None
     operation = jax.jit(apply_cutting_event)
     for event in FIXTURE['events']:
+        if event['run'] != previous_run:
+            previous_biomass, previous_yield, previous_day = 0., 0., -9
+            previous_run = event['run']
         # Observe event inputs/outputs only. This does not feed oracle values
         # into a seasonal JAX simulation or reconstruct unobserved water state.
         canopy = CanopyDayState(EarlyVegetativeCanopyState(

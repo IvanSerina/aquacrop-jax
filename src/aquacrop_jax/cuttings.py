@@ -25,6 +25,46 @@ class CuttingRecord(NamedTuple):
     canopy_reduced: jax.Array
 
 
+class ManualCuttingDecision(NamedTuple):
+    next_index: jax.Array
+    occurred: jax.Array
+    finished: jax.Array
+
+
+def manual_cutting_schedule_step(index, day_number, scheduled_days, *,
+                                 enabled=True, crop_first_day=None):
+    """Native manual GetNextHarvest and AdvanceOneTimeStep schedule guard.
+
+    Dates retain file order. At most one record is consumed per call, even
+    when several dates are overdue. Supply ``crop_first_day`` only for an
+    absolute MAN reference: GetNextHarvest then skips records before the
+    growing cycle at initialization and after each harvest. Relative MAN
+    records are already resolved against the crop start by the host parser.
+    """
+    days = jnp.asarray(scheduled_days, jnp.int32)
+    index, day = [jnp.asarray(v, jnp.int32) for v in (index, day_number)]
+    count = days.shape[0]
+    if count == 0:
+        return ManualCuttingDecision(index, jnp.bool_(False), jnp.bool_(True))
+
+    def scroll(pointer):
+        if crop_first_day is None:
+            return pointer
+        return lax.while_loop(
+            lambda i: (i < count) & (days[jnp.clip(i, 0, count - 1)] < crop_first_day),
+            lambda i: i + 1, pointer)
+
+    def considered(_):
+        current = scroll(index)
+        due = ((current < count) & (current >= 0)
+               & (day >= days[jnp.clip(current, 0, count - 1)]))
+        next_index = lax.cond(due, lambda _: scroll(current + 1), lambda _: current, None)
+        return ManualCuttingDecision(next_index, due, next_index >= count)
+
+    return lax.cond(jnp.asarray(enabled, jnp.bool_), considered,
+        lambda _: ManualCuttingDecision(index, jnp.bool_(False), index >= count), None)
+
+
 def apply_cutting_event(canopy_state, cutting_state, occurred, day_in_season,
         cut_cover_pct, cumulative_biomass, cumulative_yield):
     """Apply a decided harvest after the day's production, before output.

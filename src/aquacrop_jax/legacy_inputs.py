@@ -80,6 +80,7 @@ def field_fertility_stress(path):
 class ManualCuttings:
     day_numbers: tuple[int, ...]
     canopy_after_cut_pct: int
+    absolute_reference: bool = False
 
 
 def manual_cuttings(path, crop_first_day):
@@ -96,13 +97,14 @@ def manual_cuttings(path, crop_first_day):
     if int(_number(lines[17])) != 0:
         raise NotImplementedError('Generated cutting schedules are not yet ported')
     first = int(_number(lines[20]))
+    absolute_reference = first != -9
     first = crop_first_day if first == -9 else first
     days = []
     for line in lines[24:]:
         if line.strip():
             offset = int(_number(line))
             days.append(first + offset - 1)
-    return ManualCuttings(tuple(days), int(_number(lines[13])))
+    return ManualCuttings(tuple(days), int(_number(lines[13])), absolute_reference)
 
 
 def manual_irrigation_forcing(path, days, crop_first_day):
