@@ -28,6 +28,46 @@ class FertilityCanopyTiming(NamedTuple):
     stress_class_pct: jax.Array
 
 
+def fertility_biomass_fraction(management_stress_pct, coefficient0,
+                               coefficient1, coefficient2, *, calibrated=True):
+    """Invert the fertility polynomial as in run.f90's setup recurrence.
+
+    The native search descends from 100% biomass and linearly interpolates
+    the first bracket. Values outside [0, 1] are intentional legacy results;
+    do not replace this recurrence with a quadratic root or clip its output.
+    Scalar inputs support jit, vmap and scan with a static scalar carry.
+    """
+    management, b0, b1, b2 = [jnp.asarray(v, F64) for v in
+        (management_stress_pct, coefficient0, coefficient1, coefficient2)]
+
+    def invert(_):
+        def step(state):
+            low, low_stress, _, _, _ = state
+            top, top_stress = low, low_stress
+            low = low - 1
+            biomass_pct = low.astype(F64)
+            low_stress = b0 + b1 * biomass_pct + b2 * biomass_pct * biomass_pct
+            done = ((low_stress >= management) | (low <= 0) |
+                    (low_stress >= 99.99))
+            return low, low_stress, top, top_stress, done
+
+        _, low_stress, top, top_stress, _ = lax.while_loop(
+            lambda s: ~s[4], step,
+            (jnp.int32(100), jnp.asarray(0., F64), jnp.int32(100),
+             jnp.asarray(0., F64), jnp.bool_(False)))
+        low_stress = jnp.where(low_stress >= 99.99, 100., low_stress)
+        difference = low_stress - top_stress
+        flat = jnp.abs(difference) < .001
+        safe_difference = jnp.where(flat, 1., difference)
+        fraction_pct = jnp.where(flat, top.astype(F64),
+            top.astype(F64) - (management - top_stress) / safe_difference)
+        return fraction_pct / 100.
+
+    return lax.cond((jnp.abs(management) > jnp.finfo(F64).eps) &
+                    jnp.asarray(calibrated, jnp.bool_),
+                    invert, lambda _: jnp.asarray(1., F64), None)
+
+
 def days_to_reach_cover(target_cover, initial_cover, maximum_cover,
                         growth_coefficient, emergence_day):
     """``global.f90::DaysToReachCCwithGivenCGC`` with roundc days."""

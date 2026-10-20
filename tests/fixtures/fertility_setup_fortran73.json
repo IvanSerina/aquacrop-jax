@@ -1,0 +1,271 @@
+{
+  "source": "Native Ottawa InitializeRunPart1 and RelationshipsForFertilityAndSaltStress",
+  "precision": "Unrounded float64; native setup in disposable testcase copy",
+  "source_sha256": {
+    "run.f90": "f4bd6d8e517137898cb0079e5f014d4ee011e6742b8295ae9352c4017659e93f",
+    "global.f90": "c714bbf2a6cb5ccb37dcc4c965dc2b6cd70308d7bc92e21c82711f9b3472f179",
+    "preparefertilitysalinity.f90": "fef851728f258428ab39de8cc4a83e82fd48b81a4734a571087980a61c6cc5b7"
+  },
+  "objects_sha256": {
+    "climprocessing.o": "5548eda651daba41f1efc2ce909669742c5030500af25405e02a3ef9083f2ad7",
+    "defaultcropsoil.o": "29e5330cb8edd2055bdc2e00599c78213ee6a7db3469c24062534122b4464032",
+    "global.o": "382c34f02db0d96318b1992aeb8c8788bade5b5cd240b863a2cc8ef668d00a4e",
+    "inforesults.o": "afa201dd9b7a5a3415b0eaa05e24e68acee361e173f91cc11c53750c1c33294d",
+    "initialsettings.o": "234185f2c21be401609a04c03f2605eb6b01e7e2a40cb9e35b6274ba700cd301",
+    "kinds.o": "4198d9ae5130b7c21fb252183a192ed57ba8413e77048695b4cfe971412f5407",
+    "preparefertilitysalinity.o": "03fe768b79456c42076e4f78dd5da13048991215b4eeb6811fab9a06e3439478",
+    "project_input.o": "ca7c96d422a50f3578a4ea2c03f16556a32a78738ff29ef4f2102ab2605b1184",
+    "rootunit.o": "573b5bb8d3ed5ba9fc5e1300f0cdcc6bc57e7d71f1f6ce72b79ded2799e89203",
+    "run.o": "e67973a4016ee4171a79b3f17374e9c54fc5cb7483ce5cad8def53b1fb8671dc",
+    "simul.o": "c9e5ba4e42994ea646d9e1af0f5fa7672d6bff87922c8f73e89ddf4bb5394234",
+    "startunit.o": "c387de9b64c8f0e46eddbbdf4b9a8c7e1d1b0a71fed4b27fe3085a513fa316c0",
+    "tempprocessing.o": "d58629fc4582c5f56fdb65e34ba34ecdc4d924a8a15ac27e76c35b4853479275",
+    "utils.o": "b9523e8e8a510994915a315a102e989afdc2df9d055d179e17b5320c0dfda586"
+  },
+  "inputs_sha256": {
+    "LIST/Ottawa.PRM": "6e4fe103f3273625704ab28b8daecc48f4603080cedb2cf4473e5285bb8ad832",
+    "DATA/AlfOttawaGDD.CRO": "82068005533a2c300fa3433f8e129eae4cf07aa6f17fbe2637450c06cfda2d8a",
+    "DATA/Ottawa.MAN": "d5564df861eea76eae7655b1485055d99f42c3e099b5ff757c76c7be7d4b9a0a",
+    "DATA/Ottawa.Tnx": "ddd0bb364495b39cff953c8365c0d93b33477d2ed41920ec3c5cc14a85d252cb"
+  },
+  "setup_fields": [
+    "management_stress_pct",
+    "coefficient0",
+    "coefficient1",
+    "coefficient2",
+    "potential_biomass_fraction",
+    "reduction_growth_pct",
+    "reduction_cover_pct",
+    "reduction_wp_pct",
+    "full_canopy_sf_day",
+    "full_canopy_sf_gdd",
+    "canopy_decline"
+  ],
+  "setup": [
+    50.0,
+    84.93491201489957,
+    -0.5395815954288099,
+    -0.0030410169439997704,
+    0.5041724311045962,
+    24.0,
+    40.0,
+    52.0,
+    47.0,
+    590.0,
+    0.04188660705779268
+  ],
+  "timing_fields": [
+    "initial_cover",
+    "growth_coefficient",
+    "maximum_cover",
+    "emergence_day",
+    "full_canopy_day",
+    "senescence_day",
+    "flowering_day",
+    "flowering_length",
+    "determinant_crop"
+  ],
+  "timing_inputs": [
+    0.05,
+    0.14184615384615384,
+    0.95,
+    1.0,
+    39.0,
+    164.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "cases": [
+    {
+      "stress": -1,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 1.0058434185892338
+    },
+    {
+      "stress": 0,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 1.0
+    },
+    {
+      "stress": 1,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 0.9941565814107663
+    },
+    {
+      "stress": 10,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 0.9159331522457717
+    },
+    {
+      "stress": 20,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 0.8223183694188085
+    },
+    {
+      "stress": 30,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 0.7232676778477497
+    },
+    {
+      "stress": 40,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 0.6177144271385909
+    },
+    {
+      "stress": 50,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 0.5041724311045962
+    },
+    {
+      "stress": 60,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 0.3805115791684408
+    },
+    {
+      "stress": 70,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 0.2433884819961593
+    },
+    {
+      "stress": 80,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 0.08716470990071666
+    },
+    {
+      "stress": 84,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": 0.017149372712625063
+    },
+    {
+      "stress": 85,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": -0.0011995074222176806
+    },
+    {
+      "stress": 90,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": -0.09334458000103493
+    },
+    {
+      "stress": 99,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": -0.25920571064290604
+    },
+    {
+      "stress": 100,
+      "calibrated": true,
+      "coefficients": [
+        84.93491201489957,
+        -0.5395815954288099,
+        -0.0030410169439997704
+      ],
+      "fraction": -0.2776347251586695
+    },
+    {
+      "stress": 0,
+      "calibrated": false,
+      "coefficients": [
+        -9.0,
+        -9.0,
+        -9.0
+      ],
+      "fraction": 1.0
+    },
+    {
+      "stress": 50,
+      "calibrated": false,
+      "coefficients": [
+        -9.0,
+        -9.0,
+        -9.0
+      ],
+      "fraction": 1.0
+    },
+    {
+      "stress": 100,
+      "calibrated": false,
+      "coefficients": [
+        -9.0,
+        -9.0,
+        -9.0
+      ],
+      "fraction": 1.0
+    }
+  ]
+}
