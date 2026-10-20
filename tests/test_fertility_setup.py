@@ -46,6 +46,11 @@ def test_setup_fixture_matches_live_native_initialization(tmp_path):
                                rtol=0., atol=1e-14)
     np.testing.assert_allclose(actual["fitted_coefficients"], FIXTURE["fitted_coefficients"],
                                rtol=0., atol=1e-14)
+    assert actual["reference_year"] == FIXTURE["reference_year"]
+    assert actual["reference_co2"] == FIXTURE["reference_co2"]
+    for key in ("reference_monthly_temperature", "reference_daily_temperature",
+                "crop_reference_temperature"):
+        np.testing.assert_array_equal(actual[key], FIXTURE[key])
     for observed, expected in zip(actual["cases"], CASES, strict=True):
         assert (observed["stress"], observed["calibrated"]) == (expected["stress"], expected["calibrated"])
         np.testing.assert_allclose(observed["coefficients"], expected["coefficients"],

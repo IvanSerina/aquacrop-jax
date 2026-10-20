@@ -32,13 +32,21 @@ def generate(output):
             f'{case["stress"]} {int(case["calibrated"])}' for case in cases) + "\n"
         result = subprocess.run([str(probe)], cwd=testcase, input=inputs,
                                 text=True, capture_output=True, check=True)
+        def temperatures(path, header=0):
+            return [list(map(float, line.split())) for line in path.read_text().splitlines()[header:]
+                    if line.strip()]
+        monthly = temperatures(testcase / "SIMUL/OttawaReference.Tnx", header=8)
+        daily = temperatures(testcase / "SIMUL/TnxReference365Days.SIM")
+        crop_daily = temperatures(testcase / "SIMUL/TCropReference.SIM")
     lines = result.stdout.splitlines()
     assert lines[0].startswith("setup ") and lines[1].startswith("timing ")
     setup = list(map(float, lines[0].split()[1:]))
     timing = list(map(float, lines[1].split()[1:]))
     assert lines[2].startswith("samples ")
     samples = list(map(float, lines[2].split()[1:]))
-    for case, line in zip(cases, lines[3:], strict=True):
+    assert lines[3].startswith("reference ")
+    _, reference_year, reference_co2 = lines[3].split()
+    for case, line in zip(cases, lines[4:], strict=True):
         stress, *values = map(float, line.split())
         assert stress == case["stress"]
         case["coefficients"] = values[:3]
@@ -61,7 +69,9 @@ def generate(output):
                        "full_canopy_day", "senescence_day", "flowering_day", "flowering_length",
                        "determinant_crop"],
         timing_inputs=timing, biomass_percentages=samples[3:],
-        fitted_coefficients=samples[:3], cases=cases)
+        fitted_coefficients=samples[:3], reference_year=int(reference_year),
+        reference_co2=float(reference_co2), reference_monthly_temperature=monthly,
+        reference_daily_temperature=daily, crop_reference_temperature=crop_daily, cases=cases)
     output.write_text(json.dumps(data, indent=2) + "\n")
     print(f"{output}: {len(cases)} native cases")
 

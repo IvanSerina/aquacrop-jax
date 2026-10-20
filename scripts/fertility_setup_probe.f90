@@ -25,7 +25,8 @@ program fertility_setup_probe
         GetCrop_subkind, GetCrop_ModeCycle, GetCrop_GDDaysToFlowering, &
         GetCrop_GDDLengthFlowering, GetCrop_GDDaysToHIo, GetCrop_Planting, &
         GetCrop_DaysToHIo
-    use ac_preparefertilitysalinity, only: ReferenceStressBiomassRelationship
+    use ac_global, only: GetTnxReferenceYear
+    use ac_preparefertilitysalinity, only: ReferenceStressBiomassRelationship, CO2ForTnxReferenceYear
     use ac_startunit, only: InitializeTheProgram, InitializeProject
     use ac_run, only: InitializeRunPart1, RelationshipsForFertilityAndSaltStress, &
         GetCoeffb0, GetCoeffb1, GetCoeffb2, GetFracBiomassPotSF
@@ -83,6 +84,8 @@ program fertility_setup_probe
                                   GetCrop_GDDaysToFlowering(), GetCrop_GDDLengthFlowering(), &
                                   GetCrop_GDDaysToHIo(), GetCrop_Planting(), GetCrop_DaysToHIo())
     write(*, '(a,1x,11(es24.16,1x))') 'samples', b0, b1, b2, 100._dp, samples
+    write(*, '(a,1x,i0,1x,es24.16)') 'reference', GetTnxReferenceYear(), &
+        CO2ForTnxReferenceYear(GetTnxReferenceYear())
     read(*, *) count
     do index = 1, count
         read(*, *) stress, calibrated
