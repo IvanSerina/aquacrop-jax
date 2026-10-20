@@ -5,6 +5,7 @@
  */
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #define G(name) __ac_global_MOD_##name
 #define DS(name) extern void G(set##name)(const double *)
@@ -46,10 +47,12 @@ extern void __ac_simul_MOD_determineccigdd(
     double *, double *, int32_t *, const double *, const double *,
     const double *, const double *, const int32_t *);
 
-int main(void) {
+int main(int argc, char **argv) {
     int count, rg, rc, fao, beta, delay, protected, evap, dead;
     double cco, ccx, growth, decline, psen, shape, factor;
     double previous, initial_adjusted, maximum_adjusted, time, top, withered, sumeto;
+    double fertility_decline = 0.;
+    int virtual_start = 10;
     if (scanf("%d%lf%lf%lf%lf%d%d%lf%lf%d%lf%d%d", &count, &cco, &ccx,
         &growth, &decline, &rg, &rc, &psen, &shape, &fao, &factor, &beta, &delay) != 13
         || count < 1 || count > 10000 || rg < 0 || rg > 100 || rc < 0 || rc > 100
@@ -57,6 +60,9 @@ int main(void) {
     if (scanf("%lf%lf%lf%d%lf%lf%lf%lf%d%d", &previous, &initial_adjusted,
         &maximum_adjusted, &protected, &time, &top, &withered, &sumeto, &evap, &dead) != 10)
         return 2;
+    if (argc > 1 && strcmp(argv[1], "--fertility-decline") == 0) {
+        if (scanf("%lf%d", &fertility_decline, &virtual_start) != 2) return 2;
+    }
 
     B(crop_modecycle, 0); B(crop_subkind, 0); I(crop_determinancylinked, 0);
     B(crop_pmethod, fao); D(crop_pleafdeful, .15); D(crop_pleafdefll, .55);
@@ -73,7 +79,7 @@ int main(void) {
     I(crop_gddaystoharvest, 2200); I(crop_sumetodelaysenescence, delay);
     D(simulparam_padjfao, factor); B(simulparam_beta, beta);
     B(simulation_effectstress_redcgc, rg); B(simulation_effectstress_redccx, rc);
-    D(simulation_effectstress_cdecline, 0.); I(simulation_delayeddays, 0);
+    D(simulation_effectstress_cdecline, fertility_decline); I(simulation_delayeddays, 0);
     I(simulation_protectedseedling, protected); I(simulation_evaplimiton, evap);
     D(simulation_sumetostress, sumeto); D(cciprev, previous);
     D(cciactual, previous); D(ccitopearlysen, top);
@@ -89,7 +95,7 @@ int main(void) {
         D(rootzonewc_ztopfc, top_fc); D(rootzonewc_ztopwp, top_wp);
         I(simulation_swctopsoilconsidered, topsoil);
         __ac_simul_MOD_determineccigdd(&ccx, &cco, &leaf, &(double){0.},
-            &(int32_t){0}, &(int32_t){0}, &total, &(int32_t){i + 10},
+            &(int32_t){0}, &(int32_t){0}, &total, &(int32_t){i + virtual_start},
             &senescence, &time, &no_more, &(double){.06}, &(double){1.},
             &daily, &decline, &(int32_t){0});
         printf("%.17g %.17g %.17g %d %.17g %.17g %.17g %.17g %d %d %.17g %.17g %.17g\n",

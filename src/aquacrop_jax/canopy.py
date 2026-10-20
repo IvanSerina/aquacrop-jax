@@ -140,12 +140,15 @@ def early_vegetative_gdd_step(
         maximum_cover, growth_coefficient, decline_coefficient,
         reduction_growth_pct, reduction_cover_pct, effective_water_mm,
         effective_fc_mm, effective_wp_mm, p_leaf_upper, p_leaf_lower,
-        leaf_shape_factor):
-    """Early ``DetermineCCiGDD`` through the full-canopy stress milestone.
+        leaf_shape_factor, *, fertility_decline_cap=None):
+    """Vegetative ``DetermineCCiGDD`` with an optional fertility ceiling.
 
     The caller supplies the wetter selected root/topsoil zone *after*
     infiltration, capillary rise and salt transport but *before* ET. A false
-    validity flag forbids use during fertility canopy decline or senescence.
+    validity flag forbids use during senescence. Without an explicit
+    ``fertility_decline_cap``, the legacy early-stage guard also forbids use
+    after full canopy SF. Supply the native CCxSFCD cap to extend growth
+    through the vegetative phase; first-day growth intentionally bypasses it.
     """
     gdd, daily, initial, maximum = [jnp.asarray(v, F64) for v in
         (cumulative_gdd, daily_gdd, initial_cover, maximum_cover)]
@@ -157,11 +160,15 @@ def early_vegetative_gdd_step(
     initial_adjusted = jnp.asarray(state.initial_adjusted, F64)
     before = gdd <= jnp.asarray(emergence_gdd, F64)
     after = round_fortran(gdd) > jnp.asarray(maturity_gdd, F64)
-    active = (gdd < final) & (gdd < senescence) & (gdd <= full_sf)
+    active = (gdd < final) & (gdd < senescence)
+    if fertility_decline_cap is None:
+        active = active & (gdd <= full_sf)
     valid = before | after | active
     growth_sf = jnp.asarray(growth_coefficient, F64) * (
         1.0 - jnp.asarray(reduction_growth_pct, F64) / 100.0)
     maximum_sf = maximum * (1.0 - jnp.asarray(reduction_cover_pct, F64) / 100.0)
+    declining_maximum = maximum_sf if fertility_decline_cap is None else jnp.asarray(
+        fertility_decline_cap, F64)
 
     def growing(_):
         first = (previous <= initial_adjusted) | (gdd <= daily) | (
@@ -199,12 +206,18 @@ def early_vegetative_gdd_step(
                         initial, maximum, growth_coefficient,
                         decline_coefficient, reduction_growth_pct,
                         reduction_cover_pct)
+                    # DetermineCCxAdjusted uses CCxSF for its inverse. Native
+                    # then repeats RequiredGDD with that adjusted maximum
+                    # before advancing the daily canopy; the inverses differ.
+                    elapsed_adjusted = required_gdd(previous, initial_adjusted,
+                        jnp.where(adjusted_maximum < 0.0, maximum_sf, adjusted_maximum),
+                        adjusted_growth, gdd, daily)
                     candidate = canopy_at_time(
-                        elapsed + daily, initial_adjusted,
+                        elapsed_adjusted + daily, initial_adjusted,
                         adjusted_growth, adjusted_maximum)
                     canopy = jnp.where(adjusted_maximum < 0.0, previous,
                                        jnp.where(near_maximum, potential,
-                                                 jnp.where(elapsed < 0.0,
+                                                 jnp.where(elapsed_adjusted < 0.0,
                                                            previous, candidate)))
                     return canopy, initial_adjusted, stress
 
@@ -226,8 +239,8 @@ def early_vegetative_gdd_step(
             canopy, adjusted_initial, stress = lax.cond(
                 previous < .97999 * maximum_sf, below_maximum,
                 at_maximum, operand=None)
-            capped = canopy > maximum_sf
-            canopy = jnp.minimum(canopy, maximum_sf)
+            capped = canopy > declining_maximum
+            canopy = jnp.minimum(canopy, declining_maximum)
             stress = jnp.where(capped, -33.0, stress)
             return canopy, adjusted_initial, canopy, protected, stress
 
@@ -556,6 +569,35 @@ def fertility_canopy_no_water_stress(
 
     return lax.cond((day > full_day) & (decline > 1e-6) & (full_day < sen_day),
                     adjusted, lambda _: base, None)
+
+
+def fertility_canopy_ceiling_gdd(day, cumulative_gdd, calendar_days,
+        thermal_days, initial_cover, maximum_cover, calendar_growth,
+        thermal_growth, calendar_decline, thermal_decline,
+        reduction_growth_pct, reduction_cover_pct, canopy_decline):
+    """CCxSFCD ceiling prepared by native DetermineCCiGDD before growth.
+
+    Calendar day includes delayed days and the native +1. Before thermal
+    full canopy the ceiling is CCxSF, not the current potential canopy.
+    At natural senescence the native ceiling freezes at its linear endpoint.
+    """
+    _, full_day, sen_day, _ = [jnp.asarray(v, F64) for v in calendar_days]
+    _, full_gdd, sen_gdd, _ = [jnp.asarray(v, F64) for v in thermal_days]
+    gdd = jnp.asarray(cumulative_gdd, F64)
+    ratio = jnp.where(full_gdd < sen_gdd,
+        (sen_day - full_day) / jnp.where(full_gdd < sen_gdd, sen_gdd - full_gdd, 1.), 1.)
+    maximum_sf = jnp.asarray(maximum_cover, F64) * (
+        1.0 - jnp.asarray(reduction_cover_pct, F64) / 100.0)
+    def after_full(_):
+        ceiling = lax.cond(gdd < sen_gdd,
+            lambda _: fertility_canopy_no_water_stress(day, gdd, calendar_days,
+                thermal_days, initial_cover, maximum_cover, calendar_growth,
+                thermal_growth, calendar_decline, thermal_decline, ratio,
+                reduction_growth_pct, reduction_cover_pct, canopy_decline),
+            lambda _: maximum_sf - (ratio * jnp.asarray(canopy_decline, F64) / 100.) * (
+                sen_gdd - full_gdd), None)
+        return jnp.maximum(ceiling, 0.)
+    return lax.cond(gdd <= full_gdd, lambda _: maximum_sf, after_full, None)
 
 
 def temperature_stress(lower_temperature, upper_temperature, temperature):
