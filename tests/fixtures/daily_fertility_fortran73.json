@@ -1,0 +1,1947 @@
+{
+  "source": "Original simul.f90::EffectSoilFertilitySalinityStress, SalinityConsidered=False, actual loaded Ottawa crop",
+  "crop_fields": [
+    "initial_cover",
+    "maximum_cover",
+    "calendar_growth",
+    "emergence_day",
+    "full_canopy_day",
+    "senescence_day",
+    "maturity_day",
+    "flowering_day",
+    "flowering_length",
+    "determinacy_linked",
+    "last_virtual_day"
+  ],
+  "crop": [
+    0.05,
+    0.95,
+    0.14184615384615384,
+    1.0,
+    39.0,
+    164.0,
+    164.0,
+    0.0,
+    0.0,
+    0.0,
+    163.0
+  ],
+  "thermal_fields": [
+    "emergence_gdd",
+    "full_canopy_gdd",
+    "senescence_gdd",
+    "maturity_gdd",
+    "shape_growth",
+    "shape_cover",
+    "shape_wp",
+    "shape_decline"
+  ],
+  "thermal": [
+    5.0,
+    461.0,
+    1803.0,
+    1803.0,
+    2.35,
+    0.79,
+    -0.16,
+    6.26
+  ],
+  "record_fields": [
+    "count",
+    "first_day",
+    "last_day",
+    "crop_first_day",
+    "gdd_method",
+    "base_temperature",
+    "upper_temperature"
+  ],
+  "record": [
+    1096.0,
+    41274.0,
+    42369.0,
+    41414.0,
+    3.0,
+    5.0,
+    30.0
+  ],
+  "output_fields": [
+    "stress_pct",
+    "full_canopy_day",
+    "full_canopy_gdd",
+    "reduction_growth_pct",
+    "reduction_cover_pct",
+    "reduction_wp_pct",
+    "reduction_stomatal_pct",
+    "canopy_decline"
+  ],
+  "input_sha256": {
+    "LIST/Ottawa.PRM": "6e4fe103f3273625704ab28b8daecc48f4603080cedb2cf4473e5285bb8ad832",
+    "DATA/AlfOttawaGDD.CRO": "82068005533a2c300fa3433f8e129eae4cf07aa6f17fbe2637450c06cfda2d8a",
+    "DATA/Ottawa.Tnx": "ddd0bb364495b39cff953c8365c0d93b33477d2ed41920ec3c5cc14a85d252cb",
+    "DATA/Ottawa.MAN": "d5564df861eea76eae7655b1485055d99f42c3e099b5ff757c76c7be7d4b9a0a",
+    "PARAM/Ottawa.PPn": "42307e29688348f2f34b7fb7a815afcaae6f76b09db1b2e1f74bafd6f9ca8f88"
+  },
+  "source_sha256": {
+    "simul.f90": "2cdc1092d5867ed918c55ab60519fcab2f147a68348fe4af288d8906317e52d7",
+    "global.f90": "c714bbf2a6cb5ccb37dcc4c965dc2b6cd70308d7bc92e21c82711f9b3472f179",
+    "tempprocessing.f90": "0739c05c5bc36fe840a542b3979c08846623ad7a845b38a262d487b5245e7dc3"
+  },
+  "objects_sha256": {
+    "climprocessing.o": "5548eda651daba41f1efc2ce909669742c5030500af25405e02a3ef9083f2ad7",
+    "defaultcropsoil.o": "29e5330cb8edd2055bdc2e00599c78213ee6a7db3469c24062534122b4464032",
+    "global.o": "382c34f02db0d96318b1992aeb8c8788bade5b5cd240b863a2cc8ef668d00a4e",
+    "inforesults.o": "afa201dd9b7a5a3415b0eaa05e24e68acee361e173f91cc11c53750c1c33294d",
+    "initialsettings.o": "234185f2c21be401609a04c03f2605eb6b01e7e2a40cb9e35b6274ba700cd301",
+    "kinds.o": "4198d9ae5130b7c21fb252183a192ed57ba8413e77048695b4cfe971412f5407",
+    "preparefertilitysalinity.o": "03fe768b79456c42076e4f78dd5da13048991215b4eeb6811fab9a06e3439478",
+    "project_input.o": "ca7c96d422a50f3578a4ea2c03f16556a32a78738ff29ef4f2102ab2605b1184",
+    "rootunit.o": "573b5bb8d3ed5ba9fc5e1300f0cdcc6bc57e7d71f1f6ce72b79ded2799e89203",
+    "run.o": "e67973a4016ee4171a79b3f17374e9c54fc5cb7483ce5cad8def53b1fb8671dc",
+    "simul.o": "c9e5ba4e42994ea646d9e1af0f5fa7672d6bff87922c8f73e89ddf4bb5394234",
+    "startunit.o": "c387de9b64c8f0e46eddbbdf4b9a8c7e1d1b0a71fed4b27fe3085a513fa316c0",
+    "tempprocessing.o": "d58629fc4582c5f56fdb65e34ba34ecdc4d924a8a15ac27e76c35b4853479275",
+    "utils.o": "b9523e8e8a510994915a315a102e989afdc2df9d055d179e17b5320c0dfda586"
+  },
+  "cases": [
+    {
+      "stress_pct": -1,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        -1.0,
+        39.0,
+        462.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "stress_pct": 0,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        0.0,
+        39.0,
+        461.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "stress_pct": 1,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        1.0,
+        39.0,
+        462.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.00012370465474320635
+      ]
+    },
+    {
+      "stress_pct": 2,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        2.0,
+        40.0,
+        480.0,
+        1.0,
+        1.0,
+        2.0,
+        0.0,
+        0.00025540074320995476
+      ]
+    },
+    {
+      "stress_pct": 3,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        3.0,
+        40.0,
+        480.0,
+        1.0,
+        2.0,
+        3.0,
+        0.0,
+        0.0003956045193207469
+      ]
+    },
+    {
+      "stress_pct": 4,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        4.0,
+        40.0,
+        480.0,
+        1.0,
+        3.0,
+        4.0,
+        0.0,
+        0.0005448655874704667
+      ]
+    },
+    {
+      "stress_pct": 5,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        5.0,
+        40.0,
+        480.0,
+        1.0,
+        3.0,
+        5.0,
+        0.0,
+        0.0007037690570005362
+      ]
+    },
+    {
+      "stress_pct": 6,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        6.0,
+        40.0,
+        480.0,
+        2.0,
+        4.0,
+        6.0,
+        0.0,
+        0.0008729378358500739
+      ]
+    },
+    {
+      "stress_pct": 7,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        7.0,
+        40.0,
+        480.0,
+        2.0,
+        5.0,
+        8.0,
+        0.0,
+        0.001053035072380637
+      ]
+    },
+    {
+      "stress_pct": 8,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        8.0,
+        40.0,
+        480.0,
+        2.0,
+        5.0,
+        9.0,
+        0.0,
+        0.0012447667549433383
+      ]
+    },
+    {
+      "stress_pct": 9,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        9.0,
+        40.0,
+        480.0,
+        2.0,
+        6.0,
+        10.0,
+        0.0,
+        0.0014488844793824063
+      ]
+    },
+    {
+      "stress_pct": 10,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        10.0,
+        40.0,
+        480.0,
+        3.0,
+        7.0,
+        11.0,
+        0.0,
+        0.0016661883953196233
+      ]
+    },
+    {
+      "stress_pct": 11,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        11.0,
+        40.0,
+        480.0,
+        3.0,
+        8.0,
+        12.0,
+        0.0,
+        0.0018975303427741785
+      ]
+    },
+    {
+      "stress_pct": 12,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        12.0,
+        40.0,
+        480.0,
+        3.0,
+        8.0,
+        13.0,
+        0.0,
+        0.002143817191408215
+      ]
+    },
+    {
+      "stress_pct": 13,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        13.0,
+        40.0,
+        480.0,
+        4.0,
+        9.0,
+        14.0,
+        0.0,
+        0.002406014395492928
+      ]
+    },
+    {
+      "stress_pct": 14,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        14.0,
+        40.0,
+        480.0,
+        4.0,
+        10.0,
+        15.0,
+        0.0,
+        0.002685149778527629
+      ]
+    },
+    {
+      "stress_pct": 15,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        15.0,
+        40.0,
+        480.0,
+        4.0,
+        10.0,
+        16.0,
+        0.0,
+        0.0029823175623484577
+      ]
+    },
+    {
+      "stress_pct": 16,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        16.0,
+        41.0,
+        500.0,
+        5.0,
+        11.0,
+        17.0,
+        0.0,
+        0.0032986826565223337
+      ]
+    },
+    {
+      "stress_pct": 17,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        17.0,
+        41.0,
+        500.0,
+        5.0,
+        12.0,
+        18.0,
+        0.0,
+        0.003635485224838364
+      ]
+    },
+    {
+      "stress_pct": 18,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        18.0,
+        41.0,
+        500.0,
+        6.0,
+        13.0,
+        19.0,
+        0.0,
+        0.003994045546799496
+      ]
+    },
+    {
+      "stress_pct": 19,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        19.0,
+        41.0,
+        500.0,
+        6.0,
+        13.0,
+        20.0,
+        0.0,
+        0.004375769193170953
+      ]
+    },
+    {
+      "stress_pct": 20,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        20.0,
+        41.0,
+        500.0,
+        6.0,
+        14.0,
+        21.0,
+        0.0,
+        0.004782152535873774
+      ]
+    },
+    {
+      "stress_pct": 21,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        21.0,
+        41.0,
+        500.0,
+        7.0,
+        15.0,
+        22.0,
+        0.0,
+        0.0052147886138221855
+      ]
+    },
+    {
+      "stress_pct": 22,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        22.0,
+        41.0,
+        500.0,
+        7.0,
+        16.0,
+        23.0,
+        0.0,
+        0.005675373377699633
+      ]
+    },
+    {
+      "stress_pct": 23,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        23.0,
+        41.0,
+        500.0,
+        8.0,
+        17.0,
+        24.0,
+        0.0,
+        0.006165712338153662
+      ]
+    },
+    {
+      "stress_pct": 24,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        24.0,
+        41.0,
+        500.0,
+        8.0,
+        17.0,
+        25.0,
+        0.0,
+        0.0066877276434691435
+      ]
+    },
+    {
+      "stress_pct": 25,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        25.0,
+        41.0,
+        500.0,
+        8.0,
+        18.0,
+        27.0,
+        0.0,
+        0.007243465614466205
+      ]
+    },
+    {
+      "stress_pct": 26,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        26.0,
+        42.0,
+        520.0,
+        9.0,
+        19.0,
+        28.0,
+        0.0,
+        0.007835104766159895
+      ]
+    },
+    {
+      "stress_pct": 27,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        27.0,
+        42.0,
+        520.0,
+        9.0,
+        20.0,
+        29.0,
+        0.0,
+        0.00846496434762567
+      ]
+    },
+    {
+      "stress_pct": 28,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        28.0,
+        42.0,
+        520.0,
+        10.0,
+        21.0,
+        30.0,
+        0.0,
+        0.009135513433548237
+      ]
+    },
+    {
+      "stress_pct": 29,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        29.0,
+        42.0,
+        520.0,
+        10.0,
+        21.0,
+        31.0,
+        0.0,
+        0.009849380603093039
+      ]
+    },
+    {
+      "stress_pct": 30,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        30.0,
+        42.0,
+        520.0,
+        11.0,
+        22.0,
+        32.0,
+        0.0,
+        0.01060936424404102
+      ]
+    },
+    {
+      "stress_pct": 31,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        31.0,
+        42.0,
+        520.0,
+        11.0,
+        23.0,
+        33.0,
+        0.0,
+        0.011418443522581145
+      ]
+    },
+    {
+      "stress_pct": 32,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        32.0,
+        43.0,
+        537.0,
+        12.0,
+        24.0,
+        34.0,
+        0.0,
+        0.01227979006175961
+      ]
+    },
+    {
+      "stress_pct": 33,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        33.0,
+        43.0,
+        537.0,
+        12.0,
+        25.0,
+        35.0,
+        0.0,
+        0.013196780374369665
+      ]
+    },
+    {
+      "stress_pct": 34,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        34.0,
+        43.0,
+        537.0,
+        13.0,
+        26.0,
+        36.0,
+        0.0,
+        0.014173009099015865
+      ]
+    },
+    {
+      "stress_pct": 35,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        35.0,
+        43.0,
+        537.0,
+        13.0,
+        26.0,
+        37.0,
+        0.0,
+        0.015212303091241108
+      ]
+    },
+    {
+      "stress_pct": 36,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        36.0,
+        43.0,
+        537.0,
+        14.0,
+        27.0,
+        38.0,
+        0.0,
+        0.01631873642495285
+      ]
+    },
+    {
+      "stress_pct": 37,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        37.0,
+        44.0,
+        550.0,
+        15.0,
+        28.0,
+        39.0,
+        0.0,
+        0.01749664636295556
+      ]
+    },
+    {
+      "stress_pct": 38,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        38.0,
+        44.0,
+        550.0,
+        15.0,
+        29.0,
+        40.0,
+        0.0,
+        0.018750650359193433
+      ]
+    },
+    {
+      "stress_pct": 39,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        39.0,
+        44.0,
+        550.0,
+        16.0,
+        30.0,
+        41.0,
+        0.0,
+        0.020085664159354755
+      ]
+    },
+    {
+      "stress_pct": 40,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        40.0,
+        44.0,
+        550.0,
+        16.0,
+        31.0,
+        42.0,
+        0.0,
+        0.02150692107079044
+      ]
+    },
+    {
+      "stress_pct": 41,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        41.0,
+        44.0,
+        550.0,
+        17.0,
+        32.0,
+        43.0,
+        0.0,
+        0.02301999247728803
+      ]
+    },
+    {
+      "stress_pct": 42,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        42.0,
+        45.0,
+        562.0,
+        18.0,
+        33.0,
+        44.0,
+        0.0,
+        0.024630809679118015
+      ]
+    },
+    {
+      "stress_pct": 43,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        43.0,
+        44.0,
+        550.0,
+        18.0,
+        34.0,
+        45.0,
+        0.0,
+        0.02634568714396812
+      ]
+    },
+    {
+      "stress_pct": 44,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        44.0,
+        45.0,
+        562.0,
+        19.0,
+        35.0,
+        46.0,
+        0.0,
+        0.028171347259907664
+      ]
+    },
+    {
+      "stress_pct": 45,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        45.0,
+        45.0,
+        562.0,
+        20.0,
+        35.0,
+        47.0,
+        0.0,
+        0.030114946687417765
+      ]
+    },
+    {
+      "stress_pct": 46,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        46.0,
+        46.0,
+        575.0,
+        21.0,
+        36.0,
+        48.0,
+        0.0,
+        0.032184104413785386
+      ]
+    },
+    {
+      "stress_pct": 47,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        47.0,
+        46.0,
+        575.0,
+        21.0,
+        37.0,
+        49.0,
+        0.0,
+        0.034386931619837524
+      ]
+    },
+    {
+      "stress_pct": 48,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        48.0,
+        46.0,
+        575.0,
+        22.0,
+        38.0,
+        50.0,
+        0.0,
+        0.036732063476094035
+      ]
+    },
+    {
+      "stress_pct": 49,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        49.0,
+        47.0,
+        590.0,
+        23.0,
+        39.0,
+        51.0,
+        0.0,
+        0.03922869299297971
+      ]
+    },
+    {
+      "stress_pct": 50,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        50.0,
+        47.0,
+        590.0,
+        24.0,
+        40.0,
+        52.0,
+        0.0,
+        0.04188660705779268
+      ]
+    },
+    {
+      "stress_pct": 51,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        51.0,
+        47.0,
+        590.0,
+        24.0,
+        41.0,
+        53.0,
+        0.0,
+        0.044716224799692506
+      ]
+    },
+    {
+      "stress_pct": 52,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        52.0,
+        47.0,
+        590.0,
+        25.0,
+        42.0,
+        54.0,
+        0.0,
+        0.04772863843310238
+      ]
+    },
+    {
+      "stress_pct": 53,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        53.0,
+        48.0,
+        605.0,
+        26.0,
+        43.0,
+        55.0,
+        0.0,
+        0.05093565673963174
+      ]
+    },
+    {
+      "stress_pct": 54,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        54.0,
+        48.0,
+        605.0,
+        27.0,
+        44.0,
+        56.0,
+        0.0,
+        0.05434985135897208
+      ]
+    },
+    {
+      "stress_pct": 55,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        55.0,
+        49.0,
+        621.0,
+        28.0,
+        45.0,
+        57.0,
+        0.0,
+        0.05798460607022493
+      ]
+    },
+    {
+      "stress_pct": 56,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        56.0,
+        49.0,
+        621.0,
+        29.0,
+        46.0,
+        58.0,
+        0.0,
+        0.06185416925685061
+      ]
+    },
+    {
+      "stress_pct": 57,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        57.0,
+        50.0,
+        634.0,
+        30.0,
+        47.0,
+        59.0,
+        0.0,
+        0.06597370976089956
+      ]
+    },
+    {
+      "stress_pct": 58,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        58.0,
+        50.0,
+        634.0,
+        31.0,
+        48.0,
+        60.0,
+        0.0,
+        0.07035937634547829
+      ]
+    },
+    {
+      "stress_pct": 59,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        59.0,
+        51.0,
+        644.0,
+        32.0,
+        49.0,
+        61.0,
+        0.0,
+        0.07502836099854471
+      ]
+    },
+    {
+      "stress_pct": 60,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        60.0,
+        51.0,
+        644.0,
+        33.0,
+        50.0,
+        62.0,
+        0.0,
+        0.07999896632618697
+      ]
+    },
+    {
+      "stress_pct": 61,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        61.0,
+        52.0,
+        658.0,
+        34.0,
+        51.0,
+        63.0,
+        0.0,
+        0.0852906772995694
+      ]
+    },
+    {
+      "stress_pct": 62,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        62.0,
+        52.0,
+        658.0,
+        35.0,
+        53.0,
+        64.0,
+        0.0,
+        0.0909242376367968
+      ]
+    },
+    {
+      "stress_pct": 63,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        63.0,
+        53.0,
+        672.0,
+        36.0,
+        54.0,
+        65.0,
+        0.0,
+        0.0969217311191165
+      ]
+    },
+    {
+      "stress_pct": 64,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        64.0,
+        53.0,
+        672.0,
+        37.0,
+        55.0,
+        66.0,
+        0.0,
+        0.10330666816022227
+      ]
+    },
+    {
+      "stress_pct": 65,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        65.0,
+        54.0,
+        687.0,
+        38.0,
+        56.0,
+        67.0,
+        0.0,
+        0.11010407796801358
+      ]
+    },
+    {
+      "stress_pct": 66,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        66.0,
+        54.0,
+        687.0,
+        39.0,
+        57.0,
+        68.0,
+        0.0,
+        0.11734060666008905
+      ]
+    },
+    {
+      "stress_pct": 67,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        67.0,
+        55.0,
+        700.0,
+        40.0,
+        58.0,
+        69.0,
+        0.0,
+        0.12504462171759068
+      ]
+    },
+    {
+      "stress_pct": 68,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        68.0,
+        57.0,
+        726.0,
+        42.0,
+        59.0,
+        70.0,
+        0.0,
+        0.13324632318686058
+      ]
+    },
+    {
+      "stress_pct": 69,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        69.0,
+        57.0,
+        726.0,
+        43.0,
+        60.0,
+        71.0,
+        0.0,
+        0.14197786206482832
+      ]
+    },
+    {
+      "stress_pct": 70,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        70.0,
+        58.0,
+        738.0,
+        44.0,
+        61.0,
+        72.0,
+        0.0,
+        0.15127346633220118
+      ]
+    },
+    {
+      "stress_pct": 71,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        71.0,
+        58.0,
+        738.0,
+        45.0,
+        63.0,
+        73.0,
+        0.0,
+        0.1611695751285135
+      ]
+    },
+    {
+      "stress_pct": 72,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        72.0,
+        60.0,
+        765.0,
+        47.0,
+        64.0,
+        74.0,
+        0.0,
+        0.1717049815950078
+      ]
+    },
+    {
+      "stress_pct": 73,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        73.0,
+        61.0,
+        781.0,
+        48.0,
+        65.0,
+        75.0,
+        0.0,
+        0.18292098494529507
+      ]
+    },
+    {
+      "stress_pct": 74,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        74.0,
+        62.0,
+        797.0,
+        49.0,
+        66.0,
+        76.0,
+        0.0,
+        0.19486155235992064
+      ]
+    },
+    {
+      "stress_pct": 75,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        75.0,
+        64.0,
+        828.0,
+        51.0,
+        67.0,
+        76.0,
+        0.0,
+        0.20757349133946534
+      ]
+    },
+    {
+      "stress_pct": 76,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        76.0,
+        65.0,
+        840.0,
+        52.0,
+        68.0,
+        77.0,
+        0.0,
+        0.22110663319181412
+      ]
+    },
+    {
+      "stress_pct": 77,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        77.0,
+        66.0,
+        853.0,
+        54.0,
+        70.0,
+        78.0,
+        0.0,
+        0.23551402837287227
+      ]
+    },
+    {
+      "stress_pct": 78,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        78.0,
+        67.0,
+        867.0,
+        55.0,
+        71.0,
+        79.0,
+        0.0,
+        0.2508521544464679
+      ]
+    },
+    {
+      "stress_pct": 79,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        79.0,
+        70.0,
+        905.0,
+        57.0,
+        72.0,
+        80.0,
+        0.0,
+        0.26718113747865524
+      ]
+    },
+    {
+      "stress_pct": 80,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        80.0,
+        73.0,
+        942.0,
+        59.0,
+        73.0,
+        81.0,
+        0.0,
+        0.2845649877342914
+      ]
+    },
+    {
+      "stress_pct": 81,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        81.0,
+        74.0,
+        958.0,
+        60.0,
+        74.0,
+        82.0,
+        0.0,
+        0.3030718505998291
+      ]
+    },
+    {
+      "stress_pct": 82,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        82.0,
+        76.0,
+        992.0,
+        62.0,
+        76.0,
+        83.0,
+        0.0,
+        0.3227742737159496
+      ]
+    },
+    {
+      "stress_pct": 83,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        83.0,
+        79.0,
+        1032.0,
+        64.0,
+        77.0,
+        84.0,
+        0.0,
+        0.34374949136720745
+      ]
+    },
+    {
+      "stress_pct": 84,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        84.0,
+        81.0,
+        1061.0,
+        65.0,
+        78.0,
+        85.0,
+        0.0,
+        0.3660797272435081
+      ]
+    },
+    {
+      "stress_pct": 85,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        85.0,
+        83.0,
+        1094.0,
+        67.0,
+        80.0,
+        86.0,
+        0.0,
+        0.38985251676025023
+      ]
+    },
+    {
+      "stress_pct": 86,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        86.0,
+        88.0,
+        1146.0,
+        69.0,
+        81.0,
+        87.0,
+        0.0,
+        0.4151610502006484
+      ]
+    },
+    {
+      "stress_pct": 87,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        87.0,
+        92.0,
+        1192.0,
+        71.0,
+        82.0,
+        88.0,
+        0.0,
+        0.44210453802535943
+      ]
+    },
+    {
+      "stress_pct": 88,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        88.0,
+        98.0,
+        1281.0,
+        73.0,
+        83.0,
+        89.0,
+        0.0,
+        0.47078859978144494
+      ]
+    },
+    {
+      "stress_pct": 89,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        89.0,
+        102.0,
+        1332.0,
+        75.0,
+        85.0,
+        90.0,
+        0.0,
+        0.5013256781352107
+      ]
+    },
+    {
+      "stress_pct": 90,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        90.0,
+        108.0,
+        1428.0,
+        77.0,
+        86.0,
+        91.0,
+        0.0,
+        0.5338354796519433
+      ]
+    },
+    {
+      "stress_pct": 91,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        91.0,
+        116.0,
+        1507.0,
+        79.0,
+        87.0,
+        92.0,
+        0.0,
+        0.56844544405042
+      ]
+    },
+    {
+      "stress_pct": 92,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        92.0,
+        122.0,
+        1535.0,
+        81.0,
+        89.0,
+        93.0,
+        0.0,
+        0.6052912437716921
+      ]
+    },
+    {
+      "stress_pct": 93,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        93.0,
+        132.0,
+        1634.0,
+        83.0,
+        90.0,
+        94.0,
+        0.0,
+        0.644517315820465
+      ]
+    },
+    {
+      "stress_pct": 94,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        94.0,
+        139.0,
+        1691.0,
+        85.0,
+        92.0,
+        94.0,
+        0.0,
+        0.686277427963916
+      ]
+    },
+    {
+      "stress_pct": 95,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        95.0,
+        153.0,
+        1773.0,
+        87.0,
+        93.0,
+        95.0,
+        0.0,
+        0.7307352815074812
+      ]
+    },
+    {
+      "stress_pct": 96,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        96.0,
+        157.0,
+        1784.0,
+        88.0,
+        94.0,
+        96.0,
+        0.0,
+        0.7780651530104975
+      ]
+    },
+    {
+      "stress_pct": 97,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        97.0,
+        1.0,
+        11.0,
+        92.0,
+        96.0,
+        97.0,
+        0.0,
+        0.828452577457268
+      ]
+    },
+    {
+      "stress_pct": 98,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        98.0,
+        1.0,
+        11.0,
+        95.0,
+        97.0,
+        98.0,
+        0.0,
+        0.8820950755616043
+      ]
+    },
+    {
+      "stress_pct": 99,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        99.0,
+        1.0,
+        11.0,
+        97.0,
+        99.0,
+        99.0,
+        0.0,
+        0.9392029280559026
+      ]
+    },
+    {
+      "stress_pct": 100,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        100.0,
+        1.0,
+        11.0,
+        100.0,
+        100.0,
+        100.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "stress_pct": -1,
+      "management_stress_pct": 0,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        -1.0,
+        39.0,
+        461.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "stress_pct": 0,
+      "management_stress_pct": 0,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        0.0,
+        39.0,
+        461.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "stress_pct": 50,
+      "management_stress_pct": 0,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        50.0,
+        47.0,
+        461.0,
+        24.0,
+        40.0,
+        52.0,
+        0.0,
+        0.04188660705779268
+      ]
+    },
+    {
+      "stress_pct": 100,
+      "management_stress_pct": 0,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        100.0,
+        1.0,
+        461.0,
+        100.0,
+        100.0,
+        100.0,
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "stress_pct": 50,
+      "management_stress_pct": 50,
+      "virtual_time": -5,
+      "germinated": true,
+      "expected": [
+        50.0,
+        39.0,
+        461.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "stress_pct": 50,
+      "management_stress_pct": 50,
+      "virtual_time": 0,
+      "germinated": true,
+      "expected": [
+        50.0,
+        39.0,
+        461.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "stress_pct": 50,
+      "management_stress_pct": 50,
+      "virtual_time": 1,
+      "germinated": true,
+      "expected": [
+        50.0,
+        47.0,
+        590.0,
+        24.0,
+        40.0,
+        52.0,
+        0.0,
+        0.04188660705779268
+      ]
+    },
+    {
+      "stress_pct": 50,
+      "management_stress_pct": 50,
+      "virtual_time": 163,
+      "germinated": true,
+      "expected": [
+        50.0,
+        47.0,
+        590.0,
+        24.0,
+        40.0,
+        52.0,
+        0.0,
+        0.04188660705779268
+      ]
+    },
+    {
+      "stress_pct": 50,
+      "management_stress_pct": 50,
+      "virtual_time": 164,
+      "germinated": true,
+      "expected": [
+        50.0,
+        39.0,
+        461.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "stress_pct": 0,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": false,
+      "expected": [
+        0.0,
+        39.0,
+        461.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "stress_pct": 50,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": false,
+      "expected": [
+        50.0,
+        39.0,
+        461.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "stress_pct": 100,
+      "management_stress_pct": 50,
+      "virtual_time": 10,
+      "germinated": false,
+      "expected": [
+        100.0,
+        39.0,
+        461.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "stress_pct": 50,
+      "management_stress_pct": -1,
+      "virtual_time": 10,
+      "germinated": true,
+      "expected": [
+        50.0,
+        47.0,
+        590.0,
+        24.0,
+        40.0,
+        52.0,
+        0.0,
+        0.04188660705779268
+      ]
+    }
+  ]
+}
