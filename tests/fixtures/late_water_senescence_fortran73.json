@@ -1,0 +1,1414 @@
+{
+  "source": "simul.f90::DetermineCCiGDD early/natural water senescence and rewatering",
+  "output_columns": [
+    "cover",
+    "initial_adjusted",
+    "maximum_adjusted",
+    "protected",
+    "time_gdd",
+    "top_cover",
+    "withered_cover",
+    "eto_stress_sum_mm",
+    "evaporation_limited",
+    "no_more_crop",
+    "leaf_stress_pct",
+    "senescence_stress_pct",
+    "p_senescence_active"
+  ],
+  "source_sha256": {
+    "simul.f90": "2cdc1092d5867ed918c55ab60519fcab2f147a68348fe4af288d8906317e52d7",
+    "global.f90": "c714bbf2a6cb5ccb37dcc4c965dc2b6cd70308d7bc92e21c82711f9b3472f179"
+  },
+  "objects_sha256": {
+    "climprocessing.o": "5548eda651daba41f1efc2ce909669742c5030500af25405e02a3ef9083f2ad7",
+    "defaultcropsoil.o": "29e5330cb8edd2055bdc2e00599c78213ee6a7db3469c24062534122b4464032",
+    "global.o": "382c34f02db0d96318b1992aeb8c8788bade5b5cd240b863a2cc8ef668d00a4e",
+    "inforesults.o": "afa201dd9b7a5a3415b0eaa05e24e68acee361e173f91cc11c53750c1c33294d",
+    "initialsettings.o": "234185f2c21be401609a04c03f2605eb6b01e7e2a40cb9e35b6274ba700cd301",
+    "kinds.o": "4198d9ae5130b7c21fb252183a192ed57ba8413e77048695b4cfe971412f5407",
+    "preparefertilitysalinity.o": "03fe768b79456c42076e4f78dd5da13048991215b4eeb6811fab9a06e3439478",
+    "project_input.o": "ca7c96d422a50f3578a4ea2c03f16556a32a78738ff29ef4f2102ab2605b1184",
+    "rootunit.o": "573b5bb8d3ed5ba9fc5e1300f0cdcc6bc57e7d71f1f6ce72b79ded2799e89203",
+    "run.o": "e67973a4016ee4171a79b3f17374e9c54fc5cb7483ce5cad8def53b1fb8671dc",
+    "simul.o": "c9e5ba4e42994ea646d9e1af0f5fa7672d6bff87922c8f73e89ddf4bb5394234",
+    "startunit.o": "c387de9b64c8f0e46eddbbdf4b9a8c7e1d1b0a71fed4b27fe3085a513fa316c0",
+    "tempprocessing.o": "d58629fc4582c5f56fdb65e34ba34ecdc4d924a8a15ac27e76c35b4853479275",
+    "utils.o": "b9523e8e8a510994915a315a102e989afdc2df9d055d179e17b5320c0dfda586"
+  },
+  "cases": [
+    {
+      "name": "ongoing-dry-late",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1950.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 10.0 0.9 0.9 0.0 1 0\n0.0 182 1920 600 1920 3000\n1950.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.7918712623948923,
+          0.05,
+          0.8,
+          0.0,
+          20.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          13.783218708756262,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "name": "wet-reconstructs-maximum",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1950.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 10.0 0.9 0.9 0.0 1 0\n0.0 182 1920 600 1920 3000\n1950.0 10.0 5.0 90.0 100.0 20.0 90.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.7971027047129575,
+          0.05,
+          0.8052851445961047,
+          0.0,
+          0.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          0.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "name": "wet-at-senescence-equality",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1920.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 10.0 0.9 0.9 0.0 1 0\n0.0 182 1920 600 1920 3000\n1920.0 10.0 5.0 90.0 100.0 20.0 90.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.8,
+          0.05,
+          0.8,
+          0.0,
+          0.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          0.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "name": "dry-at-senescence-equality",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1920.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 10.0 0.9 0.9 0.0 1 0\n0.0 182 1920 600 1920 3000\n1920.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.793551639789673,
+          0.05,
+          0.8,
+          0.0,
+          20.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          13.783218708756262,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "name": "no-new-late-water-senescence",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.9,
+        0.9,
+        7.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1950.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 0.0 0.9 0.9 7.0 1 0\n0.0 182 1920 600 1920 3000\n1950.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.7918712623948923,
+          0.05,
+          0.8,
+          0.0,
+          0.0,
+          0.9,
+          0.9,
+          7.0,
+          1.0,
+          0.0,
+          -33.0,
+          -9.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "name": "dry-wet-dry-no-new-onset",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1950.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          1960.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          1970.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          1980.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "4 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 10.0 0.9 0.9 0.0 1 0\n0.0 182 1920 600 1920 3000\n1950.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n1960.0 10.0 5.0 90.0 100.0 20.0 90.0 100.0 20.0 0\n1970.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n1980.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.7918712623948923,
+          0.05,
+          0.8,
+          0.0,
+          20.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          13.783218708756262,
+          0.5850000000000001
+        ],
+        [
+          0.7888099013688521,
+          0.05,
+          0.8,
+          0.0,
+          0.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          0.0,
+          0.5850000000000001
+        ],
+        [
+          0.7855538147385456,
+          0.05,
+          0.8,
+          0.0,
+          0.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          -9.0,
+          0.65
+        ],
+        [
+          0.782090615413467,
+          0.05,
+          0.8,
+          0.0,
+          0.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          -9.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "name": "cross-natural-onset",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1900.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          1910.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          1920.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          1930.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          1940.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          1950.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "6 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 10.0 0.9 0.9 0.0 1 0\n0.0 182 1920 600 1920 3000\n1900.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n1910.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n1920.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n1930.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n1940.0 10.0 5.0 90.0 100.0 20.0 90.0 100.0 20.0 0\n1950.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.7935516397908945,
+          0.05,
+          0.7935516397908945,
+          0.0,
+          20.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          13.783218708756262,
+          0.5850000000000001
+        ],
+        [
+          0.786816511654842,
+          0.05,
+          0.786816511654842,
+          0.0,
+          30.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          13.783218708756262,
+          0.5850000000000001
+        ],
+        [
+          0.7797818626053549,
+          0.05,
+          0.786816511654842,
+          0.0,
+          40.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          13.783218708756262,
+          0.5850000000000001
+        ],
+        [
+          0.7724343725143206,
+          0.05,
+          0.786816511654842,
+          0.0,
+          50.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          13.783218708756262,
+          0.5850000000000001
+        ],
+        [
+          0.7698131336546747,
+          0.05,
+          0.774898851123177,
+          0.0,
+          0.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          0.0,
+          0.5850000000000001
+        ],
+        [
+          0.7670251643340773,
+          0.05,
+          0.774898851123177,
+          0.0,
+          0.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          -9.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "name": "late-fertility-and-water",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 24,
+        "reduction_cover_pct": 40,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.5,
+        0.05,
+        0.5,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.55,
+        0.55,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1950.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          1960.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          1970.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.1,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "3 0.05 0.95 0.012 0.006 24 40 0.65 3.0 1 1.0 10 40\n0.5 0.05 0.5 0 10.0 0.55 0.55 0.0 1 0\n0.1 182 1920 600 1920 3000\n1950.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n1960.0 10.0 5.0 90.0 100.0 20.0 90.0 100.0 20.0 0\n1970.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.44448347107438,
+          0.05,
+          0.44999999999999996,
+          0.0,
+          20.0,
+          0.55,
+          0.55,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          13.783218708756262,
+          0.5850000000000001
+        ],
+        [
+          0.44328544096518435,
+          0.05,
+          0.44972639354388283,
+          0.0,
+          0.0,
+          0.55,
+          0.55,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          0.0,
+          0.5850000000000001
+        ],
+        [
+          0.4407369146005508,
+          0.05,
+          0.44972639354388283,
+          0.0,
+          0.0,
+          0.55,
+          0.55,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          -9.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "name": "pre-late-fertility-ceiling",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1900.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.8,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 10.0 0.9 0.9 0.0 1 0\n0.8 182 1920 600 1920 3000\n1900.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          20.0,
+          0.9,
+          0.9,
+          5.0,
+          1.0,
+          1.0,
+          -33.0,
+          13.783218708756262,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "name": "late-protected-rewatering",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.05,
+        0.05,
+        0.8,
+        1
+      ],
+      "senescence_state": [
+        10.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1950.0,
+          10.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.05 0.05 0.8 1 10.0 0.9 0.9 0.0 1 0\n0.0 182 1920 600 1920 3000\n1950.0 10.0 5.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.049818919064247694,
+          0.05,
+          0.05033032153725654,
+          1.0,
+          0.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          0.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "name": "small-top-late-exhausted",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.0004,
+        0.0004,
+        0.0004,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.0004,
+        0.1,
+        20.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1950.0,
+          10.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.0004 0.0004 0.0004 0 10.0 0.0004 0.1 20.0 1 0\n0.0 182 1920 600 1920 3000\n1950.0 10.0 5.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.0,
+          0.0004,
+          0.0004,
+          0.0,
+          20.0,
+          0.0004,
+          0.1,
+          25.0,
+          1.0,
+          1.0,
+          -33.0,
+          100.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "name": "late-overflow-guard",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        1000000.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1950.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 1000000.0 0.9 0.9 0.0 1 0\n0.0 182 1920 600 1920 3000\n1950.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.0,
+          0.05,
+          0.8,
+          0.0,
+          1000010.0,
+          0.9,
+          0.9,
+          5.0,
+          1.0,
+          1.0,
+          -33.0,
+          13.783218708756262,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "name": "late-no-more-sticky",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        1
+      ],
+      "forcing": [
+        [
+          1950.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 10.0 0.9 0.9 0.0 1 1\n0.0 182 1920 600 1920 3000\n1950.0 10.0 5.0 90.0 100.0 20.0 90.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.7971027047129575,
+          0.05,
+          0.8052851445961047,
+          0.0,
+          0.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          1.0,
+          -33.0,
+          0.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "name": "late-topsoil-wet",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1950.0,
+          10.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          1
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 10.0 0.9 0.9 0.0 1 0\n0.0 182 1920 600 1920 3000\n1950.0 10.0 5.0 20.0 100.0 20.0 90.0 100.0 20.0 1\n",
+      "expected": [
+        [
+          0.7971027047129575,
+          0.05,
+          0.8052851445961047,
+          0.0,
+          0.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          0.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "name": "late-topsoil-dry",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.8,
+        0.05,
+        0.8,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.9,
+        0.9,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1950.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          1
+        ]
+      ],
+      "decline": 0.0,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.8 0.05 0.8 0 10.0 0.9 0.9 0.0 1 0\n0.0 182 1920 600 1920 3000\n1950.0 10.0 5.0 90.0 100.0 20.0 36.0 100.0 20.0 1\n",
+      "expected": [
+        [
+          0.7918712623948923,
+          0.05,
+          0.8,
+          0.0,
+          20.0,
+          0.9,
+          0.9,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          13.783218708756262,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "name": "late-fertility-strong-water-decline",
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 24,
+        "reduction_cover_pct": 40,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.5,
+        0.05,
+        0.5,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.55,
+        0.55,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          1950.0,
+          100.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "decline": 0.1,
+      "virtual_start": 182,
+      "final_growth": 1920,
+      "full_sf": 600,
+      "senescence": 1920,
+      "maturity": 3000,
+      "native_input": "1 0.05 0.95 0.012 0.006 24 40 0.65 3.0 1 1.0 10 40\n0.5 0.05 0.5 0 10.0 0.55 0.55 0.0 1 0\n0.1 182 1920 600 1920 3000\n1950.0 100.0 5.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n",
+      "expected": [
+        [
+          0.4369966983195753,
+          0.05,
+          0.44999999999999996,
+          0.0,
+          110.0,
+          0.55,
+          0.55,
+          0.0,
+          1.0,
+          0.0,
+          -33.0,
+          100.0,
+          0.5850000000000001
+        ]
+      ]
+    }
+  ]
+}

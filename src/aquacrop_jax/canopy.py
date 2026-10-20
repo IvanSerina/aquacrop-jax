@@ -45,6 +45,13 @@ class WaterSenescenceState(NamedTuple):
     no_more_crop: jax.Array
 
 
+class LateCanopyParameters(NamedTuple):
+    maturity_gdd: jax.Array
+    growth_coefficient: jax.Array
+    reduction_growth_pct: jax.Array
+    reduction_cover_pct: jax.Array
+
+
 def senescence_threshold_for_eto(eto_mm, default_threshold, time_gdd,
                                  fao_correction=True, adjustment_factor=1.0,
                                  beta_pct=10.0, with_beta=True):
@@ -68,8 +75,9 @@ def senescence_gdd_decline_coefficient(relative_depletion, p_senescence,
                                        maximum_cover, stress_maximum_cover):
     """DetermineGDDCDCadjustedWaterStress with its native KsSen guard.
 
-    p_senescence must be the ETo-adjusted threshold *without* beta. Native
-    roundoff can produce a zero coefficient just above that threshold;
+    p_senescence must be the ETo-adjusted threshold *without* beta. The scaled
+    maximum supplied here is native CCxSFCD, including fertility decline.
+    Native roundoff can produce a zero coefficient just above that threshold;
     the caller must reject a singular log-time recurrence, not move pSen.
     """
     relative, threshold, shape, decline, maximum, stress_maximum = [
@@ -318,15 +326,19 @@ def early_water_senescence_gdd_step(
         decline_coefficient, effective_water_mm, effective_fc_mm,
         effective_wp_mm, eto_mm, p_senescence, senescence_shape_factor,
         delay_eto_mm, *, canopy_valid, fao_correction=True,
-        adjustment_factor=1.0, beta_pct=10.0):
-    """Apply DetermineCCiGDD steps 4, 5 and 7 before natural senescence.
+        adjustment_factor=1.0, beta_pct=10.0, fertility_decline_cap=None,
+        late_canopy=None):
+    """Apply DetermineCCiGDD water senescence and final steps 4--7.
 
     ``canopy`` is today's vegetative result; ``previous_cover`` is yesterday's
     CCiPrev. The effective water zone is selected after pre-ET water/salt
     transport. CCoTotal and Crop.CCo are distinct inputs (e.g. with weeds).
     A false validity flag forbids consuming the returned state, including
     the native near-threshold singularity where KsSen rounds to one.
-    Late-season decline and rewatering are deliberately outside this operator.
+    ``late_canopy`` explicitly enables continuation into natural senescence
+    and rewatering using its crop parameters. Without it, late states remain
+    unsupported. ``fertility_decline_cap`` is CCxSFCD, distinct from the
+    CCxSF parameter used to reconstruct the maximum after late rewatering.
     """
     (previous, gdd, daily, emergence, senescence, final, initial, crop_initial,
      maximum, stress_maximum, decline, actual, fc, wp, eto, psen, shape,
@@ -342,8 +354,13 @@ def early_water_senescence_gdd_step(
         *[jnp.asarray(v, F64) for v in state[:4]],
         jnp.asarray(state.evaporation_limited, jnp.bool_),
         jnp.asarray(state.no_more_crop, jnp.bool_))
+    phase_supported = gdd < senescence
+    if late_canopy is not None:
+        phase_supported = phase_supported | (round_fortran(gdd) <= late_canopy.maturity_gdd)
     supported = (jnp.asarray(canopy_valid, jnp.bool_) & (gdd > emergence)
-                 & (gdd < senescence) & (fc > wp))
+                 & phase_supported & (fc > wp))
+    early_ceiling = stress_maximum if fertility_decline_cap is None else jnp.asarray(
+        fertility_decline_cap, F64)
 
     def invalid(_):
         return canopy, state, jnp.asarray(-9., F64), jnp.asarray(False)
@@ -362,7 +379,7 @@ def early_water_senescence_gdd_step(
                 with_beta=False)
             cdc, stress = senescence_gdd_decline_coefficient(
                 (fc - actual) / (fc - wp), coefficient_threshold, shape,
-                decline, maximum, stress_maximum)
+                decline, maximum, early_ceiling)
 
             def dormant_cover(_):
                 return jnp.where(.05 > crop_initial,
@@ -402,10 +419,14 @@ def early_water_senescence_gdd_step(
 
             candidate, regular = lax.cond(top < .001,
                 lambda _: (exhausted(None), jnp.asarray(True)), normal_top, None)
-            candidate = jnp.minimum(candidate, stress_maximum)
-            cover = jnp.minimum(candidate, previous)
-            next_canopy = EarlyVegetativeCanopyState(
-                cover, jnp.minimum(cover, initial), cover, canopy.protected)
+            candidate = jnp.where(gdd < senescence,
+                                   jnp.minimum(candidate, early_ceiling), candidate)
+            def early_update(_):
+                cover = jnp.minimum(candidate, previous)
+                return EarlyVegetativeCanopyState(
+                    cover, jnp.minimum(cover, initial), cover, canopy.protected)
+            next_canopy = lax.cond(gdd < senescence, early_update,
+                lambda _: canopy._replace(cover=jnp.minimum(candidate, canopy.cover)), None)
             # Native accumulation uses CCiSen before the CCiPrev no-jump cap.
             low = ((round_fortran(10000.0 * candidate) <= 500.0)
                    | (round_fortran(10000.0 * candidate) <=
@@ -417,14 +438,42 @@ def early_water_senescence_gdd_step(
             return next_canopy, next_state, stress, regular
 
         def wet(_):
-            return canopy, WaterSenescenceState(
+            next_canopy, regular = canopy, jnp.asarray(True)
+            if late_canopy is not None:
+                def rewater(_):
+                    denominator = 1. - .05 * (jnp.exp(
+                        (gdd - daily - senescence) * decline * 3.33 /
+                        (stress_maximum + 2.29)) - 1.)
+                    cover_fraction = 1. - jnp.asarray(late_canopy.reduction_cover_pct, F64) / 100.
+                    regular = (denominator != 0.) & (cover_fraction != 0.)
+                    adjusted = previous / jnp.where(denominator != 0., denominator, 1.)
+                    cdc = decline * (adjusted + 2.29) / (stress_maximum + 2.29)
+                    value = potential_canopy_gdd(gdd, emergence, senescence,
+                        late_canopy.maturity_gdd, initial,
+                        adjusted / jnp.where(cover_fraction != 0., cover_fraction, 1.),
+                        late_canopy.growth_coefficient, cdc,
+                        late_canopy.reduction_growth_pct, late_canopy.reduction_cover_pct)
+                    next_canopy = canopy._replace(cover=value, maximum_adjusted=adjusted)
+                    return next_canopy, regular & jnp.isfinite(value) & jnp.isfinite(adjusted)
+                next_canopy, regular = lax.cond(
+                    (state.time_gdd > 0.) & (gdd > senescence), rewater,
+                    lambda _: (canopy, jnp.asarray(True)), None)
+            return next_canopy, WaterSenescenceState(
                 jnp.asarray(0., F64), state.top_cover, state.withered_cover,
                 jnp.asarray(0., F64), state.evaporation_limited,
-                state.no_more_crop), jnp.asarray(0., F64), jnp.asarray(True)
+                state.no_more_crop), jnp.asarray(0., F64), regular
 
-        next_canopy, next_state, stress, regular = lax.cond(onset, dry, wet, None)
+        def water_step(_):
+            return lax.cond(onset, dry, wet, None)
+        next_canopy, next_state, stress, regular = lax.cond(
+            (gdd < senescence) | (state.time_gdd > 0.), water_step,
+            lambda _: (canopy, state, jnp.asarray(-9., F64), jnp.asarray(True)), None)
+        # Native step 5 precedes the late-season no-increase guard (step 6).
         next_state = next_state._replace(
-            withered_cover=jnp.maximum(next_state.withered_cover, next_canopy.cover),
+            withered_cover=jnp.maximum(next_state.withered_cover, next_canopy.cover))
+        next_canopy = next_canopy._replace(cover=jnp.where(gdd > senescence,
+            jnp.minimum(next_canopy.cover, previous), next_canopy.cover))
+        next_state = next_state._replace(
             no_more_crop=(next_state.no_more_crop |
                           (round_fortran(1000.0 * next_canopy.cover) <= 0.0)))
         return lax.cond(regular, lambda _: (next_canopy, next_state, stress, regular),
