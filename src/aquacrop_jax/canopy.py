@@ -487,6 +487,77 @@ def potential_canopy_calendar(day_after_planting, emergence_day,
     return jnp.where(valid, cover, 0.0)
 
 
+def fertility_canopy_no_water_stress(
+        day, cumulative_gdd, calendar_days, thermal_days, initial_cover,
+        maximum_cover, calendar_growth, thermal_growth, calendar_decline,
+        thermal_decline, days_per_gdd, reduction_growth_pct,
+        reduction_cover_pct, canopy_decline, *, gdd_mode=True):
+    """``CCiNoWaterStressSF`` for calibration with zero delayed germination.
+
+    Milestones are emergence, fertility full canopy, senescence and maturity.
+    The outer decline guards use calendar time in both modes. The late branch
+    deliberately recomputes cover, including beyond the base maturity guard.
+    """
+    l0, full_day, sen_day, maturity = [jnp.asarray(v, F64) for v in calendar_days]
+    g0, full_gdd, sen_gdd, mature_gdd = [jnp.asarray(v, F64) for v in thermal_days]
+    day, gdd, initial, maximum, decline = [jnp.asarray(v, F64) for v in
+        (day, cumulative_gdd, initial_cover, maximum_cover, canopy_decline)]
+    mode = jnp.asarray(gdd_mode, jnp.bool_)
+    base = lax.cond(mode,
+        lambda _: potential_canopy_gdd(gdd, g0, sen_gdd, mature_gdd,
+            initial, maximum, thermal_growth, thermal_decline,
+            reduction_growth_pct, reduction_cover_pct),
+        lambda _: potential_canopy_calendar(day, l0, sen_day, maturity,
+            initial, maximum, calendar_growth, calendar_decline,
+            fertility_growth_reduction_pct=reduction_growth_pct,
+            fertility_cover_reduction_pct=reduction_cover_pct), None)
+
+    def adjusted(_):
+        time = jnp.where(mode, gdd, day)
+        full = jnp.where(mode, full_gdd, full_day)
+        senescence = jnp.where(mode, sen_gdd, sen_day)
+        emergence = jnp.where(mode, g0, l0)
+        factor = jnp.where(mode, jnp.asarray(days_per_gdd, F64), 1.)
+        rate = factor * decline / 100.
+        thermal_active = (~mode) | ((gdd > full_gdd) & (sen_gdd > full_gdd))
+        delta = jnp.where(thermal_active, time - full, 1.)
+        length = senescence - full
+        penalty = jnp.where(thermal_active,
+            rate * jnp.exp(2. * jnp.log(delta)) /
+            jnp.where(thermal_active, length, 1.), 0.)
+
+        def early(_):
+            return jnp.maximum(base - penalty, 0.)
+
+        def late(_):
+            growth = jnp.where(mode, thermal_growth, calendar_growth) * (
+                1. - jnp.asarray(reduction_growth_pct, F64) / 100.)
+            max_sf = maximum * (1. - jnp.asarray(reduction_cover_pct, F64) / 100.)
+            at_senescence = canopy_at_time(senescence - emergence, initial, growth, max_sf)
+            continued = at_senescence - penalty
+            adjusted_max = jnp.where(continued < 0., 0., at_senescence - rate * length)
+
+            def declining(_):
+                cdc = jnp.where(mode, thermal_decline, calendar_decline) * (
+                    adjusted_max + 2.29) / (maximum + 2.29)
+                safe_cdc = jnp.where(cdc <= jnp.finfo(F64).eps, 1., cdc)
+                days = jnp.where(cdc <= jnp.finfo(F64).eps, -9., round_fortran(
+                    ((adjusted_max + 2.29) / (safe_cdc * 3.33)) * jnp.log(21.) + .50))
+                cover = adjusted_max * (1. - .05 * (
+                    jnp.exp((time - senescence) * 3.33 * cdc /
+                            (adjusted_max + 2.29)) - 1.))
+                return jnp.where(time < senescence + days,
+                                  jnp.minimum(continued, cover), 0.)
+
+            return lax.cond(adjusted_max < .001,
+                lambda _: jnp.asarray(0., F64), declining, None)
+
+        return jnp.maximum(lax.cond(day < sen_day, early, late, None), 0.)
+
+    return lax.cond((day > full_day) & (decline > 1e-6) & (full_day < sen_day),
+                    adjusted, lambda _: base, None)
+
+
 def temperature_stress(lower_temperature, upper_temperature, temperature):
     """Translate the logistic ``KsTemperature`` response."""
     lower, upper, value = [jnp.asarray(item, F64) for item in
