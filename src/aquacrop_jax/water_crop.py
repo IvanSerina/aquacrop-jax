@@ -60,6 +60,14 @@ class WaterCropFeedbackTrajectory(NamedTuple):
     feedback: object
 
 
+class WaterCropPostFeedbackTrajectory(NamedTuple):
+    """Water, pre/post-ET diagnostics and resumable end-of-day crop state."""
+    water: WaterCropTrajectory
+    feedback: object
+    post_feedback: object
+    final_feedback_state: object
+
+
 class WaterCropPreET(NamedTuple):
     """Daily state after infiltration, capillary rise and salt transport."""
 
@@ -257,7 +265,7 @@ def run_water_crop_trajectory(
         potential_evaporation=None, salinity_growing_mask=None,
         initial_salinity_growing_days=0.0, initial_mean_salinity_stress_pct=0.0,
         daily_feedback_step=None, initial_feedback_state=None,
-        feedback_forcing=None):
+        feedback_forcing=None, daily_post_et_step=None):
     """Run explicit daily water/salt state with optional canopy feedback.
 
     ``potential_evaporation`` enables canopy-shaded demand. Salt stores and
@@ -269,12 +277,22 @@ def run_water_crop_trajectory(
     its per-day inputs in ``feedback_forcing``; the result then contains both
     the water trajectory and the scanned diagnostics. Potential transpiration
     may be ``None`` in this mode because feedback supplies it.
+
+    Optional ``daily_post_et_step(state, pre_et, water_output, forcing)``
+    runs after ET and both balances. It returns ``(next_state, diagnostics)``;
+    that state feeds the following day's pre-ET callback. This mirrors native
+    production/events after BUDGET and supplies actual, not potential, fluxes.
+    Both callbacks share ``feedback_forcing`` and must preserve state shapes
+    and dtypes. This mode additionally returns post-ET diagnostics and the
+    final crop state for restart; pre-only and no-feedback results are unchanged.
     """
     initial_theta = jnp.asarray(initial_theta, F64)
     rain = jnp.asarray(rain, F64)
     eto = jnp.asarray(eto, F64)
     rooting_depth = jnp.asarray(rooting_depth, F64)
     feedback_enabled = daily_feedback_step is not None
+    if daily_post_et_step is not None and not feedback_enabled:
+        raise ValueError("post-ET feedback requires daily_feedback_step")
     if feedback_enabled and initial_feedback_state is None:
         raise ValueError("daily feedback requires an explicit initial state")
     if not feedback_enabled and (initial_feedback_state is not None or feedback_forcing is not None):
@@ -402,12 +420,22 @@ def run_water_crop_trajectory(
              feedback_output) = daily_feedback_step(feedback_state, pre_et, extra)
             water_carry, water_output = finish_day(
                 pre_et, post_inputs, tpot_day, epot_day)
+            if daily_post_et_step is not None:
+                feedback_state, post_output = daily_post_et_step(
+                    feedback_state, pre_et, water_output, extra)
+                return ((water_carry, feedback_state),
+                        (water_output, feedback_output, post_output))
             return ((water_carry, feedback_state),
                     (water_output, feedback_output))
 
-        _, (water_output, feedback_output) = lax.scan(
+        final_state, output = lax.scan(
             feedback_body, (initial_state, initial_feedback_state),
             (base_forcing, extra_forcing))
+        if daily_post_et_step is not None:
+            water_output, feedback_output, post_output = output
+            return WaterCropPostFeedbackTrajectory(WaterCropTrajectory(*water_output),
+                feedback_output, post_output, final_state[1])
+        water_output, feedback_output = output
         return WaterCropFeedbackTrajectory(
             WaterCropTrajectory(*water_output), feedback_output)
 
