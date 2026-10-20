@@ -69,6 +69,8 @@ def _slice(series, first_day_number: int, last_day_number: int, label: str):
 
 def run_climate_stage(project: Project, project_file: Path, output: Path) -> int:
     """Create a calculated daily climate/GDD trace for all project runs."""
+    from .legacy_inputs import program_temperature_parameters
+    program = program_temperature_parameters(project_file)
     output.parent.mkdir(parents=True, exist_ok=True)
     row_count = 0
     with output.open("w", newline="", encoding="utf-8") as stream:
@@ -91,7 +93,7 @@ def run_climate_stage(project: Project, project_file: Path, output: Path) -> int
             tbase = next(v for k, v in crop.items() if k.startswith("Base temperature"))
             tupper = next(v for k, v in crop.items() if k.startswith("Upper temperature"))
             tensor = jnp.asarray(temps, dtype=jnp.float64)
-            gdd = degrees_day(tbase, tupper, tensor[:, 0], tensor[:, 1], 3)
+            gdd = degrees_day(tbase, tupper, tensor[:, 0], tensor[:, 1], program.gdd_method)
             # AquaCrop crop GDD is reset outside crop periods. This first trace
             # exposes both daily GDD and the crop-period cumulative recurrence.
             in_crop = jnp.asarray([

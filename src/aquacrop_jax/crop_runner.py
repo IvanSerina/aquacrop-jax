@@ -22,7 +22,8 @@ from .climate import (_reference, _slice, calendar_days_for_gdd,
 from .kernels import degrees_day
 from .legacy import Project, read_annotated_values, read_climate_series
 from .legacy_inputs import (co2_for_period, groundwater_forcing,
-                            initial_conditions, manual_irrigation_forcing)
+                            initial_conditions, manual_irrigation_forcing,
+                            program_temperature_parameters)
 from .production import run_production_trajectory
 from .roots import actual_rooting_depth_gdd
 from .rounding import round_fortran
@@ -51,6 +52,7 @@ class CropRunResult:
 def simulate_project(project: Project, project_file: Path, salt_stomatal_coefficients=None):
     """Calculate every simulation day, resetting/preserving explicit state per SW0."""
     theta = salt = previous_geometry = None
+    program = program_temperature_parameters(project_file)
     surface, evaporation_depth, stage2_start = 0.0, .15, -1.0
     previous_end = None
     for number, run in enumerate(project.runs, 1):
@@ -88,7 +90,7 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
         temperature = np.asarray(_slice(temperature_record, run.simulation_first_day,
                                         run.simulation_last_day, 'Temperature'))
         gdd = degrees_day(value('Base temperature'), value('Upper temperature'),
-                          temperature[:, 0], temperature[:, 1], 3)
+                          temperature[:, 0], temperature[:, 1], program.gdd_method)
         cumulative = jnp.cumsum(jnp.where(in_crop, gdd, 0.0))
         initial = _reference(run, 'Initial conditions')
         keep = initial.name == 'KeepSWC'
@@ -129,7 +131,7 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
             raise ValueError('Temperature record does not cover crop sowing day')
         future_temperature = np.asarray(temperature_record.values[offset:])
         future_gdd = degrees_day(value('Base temperature'), value('Upper temperature'),
-                                 future_temperature[:, 0], future_temperature[:, 1], 3)
+                                 future_temperature[:, 0], future_temperature[:, 1], program.gdd_method)
         emergence_day = int(calendar_days_for_gdd(
             future_gdd, int(value('GDDays: from sowing to emergence'))))
         full_canopy_gdd = int(value('GDDays: from sowing to emergence')) + int(
@@ -154,7 +156,8 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
             canopy, eto, value('Crop coefficient when canopy is complete'),
             value('Cumulative decrease'), maximum_cover, lax.associative_scan(jnp.maximum, canopy),
             value('Effect of canopy cover in reducing soil evaporation'), co2, gdd,
-            value('Minimum growing degrees required for full crop transpiration'))
+            value('Minimum growing degrees required for full crop transpiration'),
+            senescence_exponent=program.senescence_exponent)
         irrigation, irrigation_ec = manual_irrigation_forcing(path('Irrigation management'), days, run.crop_first_day)
         groundwater, groundwater_ec = groundwater_forcing(path('Groundwater table'), days)
         water = run_water_crop_trajectory(theta, rain, eto, root, potential.transpiration_mm,

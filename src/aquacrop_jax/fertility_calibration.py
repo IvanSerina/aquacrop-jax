@@ -14,7 +14,8 @@ from .fertility import (FertilityBiomassCoefficients, days_to_reach_cover,
     fit_fertility_biomass_response, soil_fertility_effect, time_to_max_canopy_sf)
 from .kernels import degrees_day
 from .legacy import read_annotated_values, read_climate_series
-from .legacy_inputs import co2_for_period, field_fertility_stress
+from .legacy_inputs import (co2_for_period, field_fertility_stress,
+                            program_temperature_parameters)
 from .reference_biomass import normalized_biomass_trajectory
 from .reference_calendar import ReferenceCropCalendar, gdd_reference_calendar
 from .reference_climate import (crop_reference_temperature, daily_reference_temperature,
@@ -169,15 +170,8 @@ def prepare_seeded_forage_reference(project_file: Path, run):
         "Shape factor for the response of decline of canopy cover"))
     if all(shape > 24.9 for shape in shapes):
         raise ValueError("Crop soil fertility response is not calibrated")
-    extension = ".PP1" if project_file.suffix == ".PRO" else ".PPn"
-    program_file = project_file.parent.parent / "PARAM" / (project_file.stem + extension)
-    program = read_annotated_values(program_file) if program_file.exists() else {}
-    senescence_exponent = next((v for key, v in program.items()
-        if key.startswith("Exponent of senescence factor")), 1.)
-    method = int(next((v for key, v in program.items()
-        if key.startswith("Default method for the calculation of growing degree days")), 3))
-    if method not in (1, 2, 3):
-        raise ValueError("Program GDD method must be 1, 2 or 3")
+    program = program_temperature_parameters(project_file)
+    senescence_exponent, method = program.senescence_exponent, program.gdd_method
     if path("Temperature") is None:
         raise NotImplementedError("Reference adapter requires a daily temperature file")
     series = read_climate_series(path("Temperature"), 2)

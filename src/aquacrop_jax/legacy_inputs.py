@@ -14,6 +14,40 @@ def _number(line):
     return float(line.split(':', 1)[0].strip())
 
 
+@dataclass(frozen=True)
+class ProgramTemperatureParameters:
+    gdd_method: int = 3
+    senescence_exponent: float = 1.0
+
+
+def program_temperature_parameters(project_file):
+    """Read temperature controls by CLI PP1/PPn record position.
+
+    InitializeSettings supplies defaults if the project parameter file is
+    absent. LoadProgramParametersProjectPlugIn clamps GDD method to 1..3;
+    its lower clamp differs from the generic GUI loader. Comments are not
+    semantic input. Other program parameters are not represented here yet.
+    """
+    project = Path(project_file)
+    extension = '.PP1' if project.suffix == '.PRO' else '.PPn'
+    path = project.parent.parent / 'PARAM' / (project.stem + extension)
+    if not path.exists():
+        return ProgramTemperatureParameters()
+    records = [line for line in path.read_text().splitlines() if line.strip()]
+    if len(records) < 25:
+        raise ValueError('Program parameter file ends before its 25 CLI records')
+    try:
+        exponent = float(records[9].split()[0].replace('D', 'e').replace('d', 'e'))
+        method = int(records[20].split()[0])
+    except (ValueError, IndexError) as exc:
+        raise ValueError('Invalid temperature control in program parameter file') from exc
+    if not np.isfinite(exponent):
+        raise ValueError('Program senescence exponent must be finite')
+    if not -128 <= method <= 127:
+        raise ValueError('Program GDD method exceeds native int8 input range')
+    return ProgramTemperatureParameters(min(max(method, 1), 3), exponent)
+
+
 def _records(lines, columns):
     rows = []
     for line in lines:
