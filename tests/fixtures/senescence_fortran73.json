@@ -1,0 +1,1874 @@
+{
+  "source": "Native simul.f90::DetermineCCiGDD, before full canopy and natural senescence",
+  "precision": "Unrounded float64: cover fractions, GDD, water/ETo mm, stresses percent",
+  "milestones": {
+    "emergence": 5,
+    "full_canopy_sf": 600,
+    "senescence": 1920,
+    "maturity": 2200
+  },
+  "output_columns": [
+    "cover",
+    "initial_adjusted",
+    "maximum_adjusted",
+    "protected",
+    "time_gdd",
+    "top_cover",
+    "withered_cover",
+    "eto_stress_sum_mm",
+    "evaporation_limited",
+    "no_more_crop",
+    "leaf_stress_pct",
+    "senescence_stress_pct",
+    "p_senescence_active"
+  ],
+  "source_sha256": {
+    "simul.f90": "2cdc1092d5867ed918c55ab60519fcab2f147a68348fe4af288d8906317e52d7",
+    "global.f90": "c714bbf2a6cb5ccb37dcc4c965dc2b6cd70308d7bc92e21c82711f9b3472f179"
+  },
+  "objects_sha256": {
+    "climprocessing.o": "5548eda651daba41f1efc2ce909669742c5030500af25405e02a3ef9083f2ad7",
+    "defaultcropsoil.o": "29e5330cb8edd2055bdc2e00599c78213ee6a7db3469c24062534122b4464032",
+    "global.o": "382c34f02db0d96318b1992aeb8c8788bade5b5cd240b863a2cc8ef668d00a4e",
+    "inforesults.o": "afa201dd9b7a5a3415b0eaa05e24e68acee361e173f91cc11c53750c1c33294d",
+    "initialsettings.o": "234185f2c21be401609a04c03f2605eb6b01e7e2a40cb9e35b6274ba700cd301",
+    "kinds.o": "4198d9ae5130b7c21fb252183a192ed57ba8413e77048695b4cfe971412f5407",
+    "preparefertilitysalinity.o": "03fe768b79456c42076e4f78dd5da13048991215b4eeb6811fab9a06e3439478",
+    "project_input.o": "ca7c96d422a50f3578a4ea2c03f16556a32a78738ff29ef4f2102ab2605b1184",
+    "rootunit.o": "573b5bb8d3ed5ba9fc5e1300f0cdcc6bc57e7d71f1f6ce72b79ded2799e89203",
+    "run.o": "e67973a4016ee4171a79b3f17374e9c54fc5cb7483ce5cad8def53b1fb8671dc",
+    "simul.o": "c9e5ba4e42994ea646d9e1af0f5fa7672d6bff87922c8f73e89ddf4bb5394234",
+    "startunit.o": "c387de9b64c8f0e46eddbbdf4b9a8c7e1d1b0a71fed4b27fe3085a513fa316c0",
+    "tempprocessing.o": "d58629fc4582c5f56fdb65e34ba34ecdc4d924a8a15ac27e76c35b4853479275",
+    "utils.o": "b9523e8e8a510994915a315a102e989afdc2df9d055d179e17b5320c0dfda586"
+  },
+  "cases": [
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          110.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          120.0,
+          10.0,
+          5.0,
+          50.0,
+          100.0,
+          20.0,
+          50.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          130.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          140.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "drought-beta-rewatering-renewed",
+      "native_input": "5 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n110.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n120.0 10.0 5.0 50.0 100.0 20.0 50.0 100.0 20.0 0\n130.0 10.0 5.0 90.0 100.0 20.0 90.0 100.0 20.0 0\n140.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.0997010259792824,
+          0.05,
+          0.0997010259792824,
+          0.0,
+          10.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          13.783218708756262,
+          0.65
+        ],
+        [
+          0.099384174865552,
+          0.05,
+          0.099384174865552,
+          0.0,
+          20.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          13.783218708756262,
+          0.5850000000000001
+        ],
+        [
+          0.09937634485231252,
+          0.05,
+          0.09937634485231252,
+          0.0,
+          30.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          0.0,
+          0.5850000000000001
+        ],
+        [
+          0.11204651594244866,
+          0.05,
+          0.11204651594244866,
+          0.0,
+          0.0,
+          0.1,
+          0.11204651594244866,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.5850000000000001
+        ],
+        [
+          0.11171325498252185,
+          0.05,
+          0.11171325498252185,
+          0.0,
+          10.0,
+          0.11204651594244866,
+          0.11204651594244866,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          13.783218708756262,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          48.00000000000001,
+          100.0,
+          20.0,
+          48.00000000000001,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "threshold-wetter",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 5.0 48.00000000000001 100.0 20.0 48.00000000000001 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.1,
+          0.05,
+          0.1,
+          0.0,
+          0.0,
+          0.0,
+          0.1,
+          0.0,
+          0.0,
+          0.0,
+          100.0,
+          0.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          48.0,
+          100.0,
+          20.0,
+          48.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "threshold-equal",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 5.0 48.0 100.0 20.0 48.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.1,
+          0.05,
+          0.1,
+          0.0,
+          0.0,
+          0.0,
+          0.1,
+          0.0,
+          0.0,
+          0.0,
+          100.0,
+          0.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          47.9999999,
+          100.0,
+          20.0,
+          47.9999999,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "threshold-drier",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 5.0 47.9999999 100.0 20.0 47.9999999 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.0999999999981174,
+          0.05,
+          0.0999999999981174,
+          0.0,
+          10.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          5.629909871629479e-08,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          47.99999999999999,
+          100.0,
+          20.0,
+          47.99999999999999,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "threshold-drier-ulp",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 5.0 47.99999999999999 100.0 20.0 47.99999999999999 100.0 20.0 0\n",
+      "native_finite": false,
+      "native_limitation": "Actual is one ULP below the strict onset threshold, but KsSen rounds to 1; GDDCDCadjusted becomes 0 and the native log-time recurrence yields NaN. The JAX validity flag must reject this state without a threshold tolerance.",
+      "expected": [
+        [
+          null,
+          0.05,
+          null,
+          0.0,
+          10.0,
+          0.1,
+          0.1,
+          5.0,
+          1.0,
+          1.0,
+          100.0,
+          0.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          1
+        ]
+      ],
+      "name": "topsoil-wet-root-dry",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 5.0 20.0 100.0 20.0 90.0 100.0 20.0 1\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.11274968515793758,
+          0.05,
+          0.11274968515793758,
+          0.0,
+          0.0,
+          0.0,
+          0.11274968515793758,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          1
+        ]
+      ],
+      "name": "topsoil-dry-root-wet",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 5.0 90.0 100.0 20.0 36.0 100.0 20.0 1\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.0997010259792824,
+          0.05,
+          0.0997010259792824,
+          0.0,
+          10.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          13.783218708756262,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.05,
+        0.05,
+        0.05,
+        1
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.05,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          10.0,
+          5.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "protected-seedling",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.05 0.05 0.05 1 0.0 0.0 0.05 0.0 0 0\n10.0 5.0 5.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.053091827327267985,
+          0.05,
+          0.053091827327267985,
+          1.0,
+          0.0,
+          0.0,
+          0.053091827327267985,
+          0.0,
+          0.0,
+          0.0,
+          -9.0,
+          0.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.061,
+        0.05,
+        0.061,
+        1
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.061,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          30.0,
+          10.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "protection-ends-before-senescence",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.061 0.05 0.061 1 0.0 0.0 0.061 0.0 0 0\n30.0 10.0 5.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.06012725073975186,
+          0.05,
+          0.06012725073975186,
+          0.0,
+          10.0,
+          0.06749294037880016,
+          0.061,
+          0.0,
+          1.0,
+          0.0,
+          -9.0,
+          100.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0001,
+        0.1,
+        0.1,
+        3.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          50.0,
+          100.0,
+          20.0,
+          50.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "beta-time-equal",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0001 0.1 0.1 3.0 1 0\n100.0 10.0 5.0 50.0 100.0 20.0 50.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.1,
+          0.05,
+          0.1,
+          0.0,
+          0.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          0.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.00010000000000000002,
+        0.1,
+        0.1,
+        3.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          50.0,
+          100.0,
+          20.0,
+          50.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "beta-time-above",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.00010000000000000002 0.1 0.1 3.0 1 0\n100.0 10.0 5.0 50.0 100.0 20.0 50.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.09999302861729842,
+          0.05,
+          0.09999302861729842,
+          0.0,
+          10.0001,
+          0.1,
+          0.1,
+          3.0,
+          1.0,
+          0.0,
+          100.0,
+          0.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          7.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "fao-eto-correction",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 7.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.09965366221335246,
+          0.05,
+          0.09965366221335246,
+          0.0,
+          10.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          18.281822151974513,
+          0.6005561522630326
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 0,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.1,
+        0.1,
+        3.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          7.0,
+          50.0,
+          100.0,
+          20.0,
+          50.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "no-fao-no-beta",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 0 1.0 10 40\n0.1 0.05 0.1 0 10.0 0.1 0.1 3.0 1 0\n100.0 10.0 7.0 50.0 100.0 20.0 50.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.1,
+          0.05,
+          0.1,
+          0.0,
+          0.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          0.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 1.0,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          0.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "fao-upper-cap",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 1.0 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 0.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.09956403945159947,
+          0.05,
+          0.09956403945159947,
+          0.0,
+          10.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          100.0,
+          0.98
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.1,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "fao-lower-cap",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.1 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 20.0 90.0 100.0 20.0 90.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.09991254663379225,
+          0.05,
+          0.09991254663379225,
+          0.0,
+          10.0,
+          0.10086798481289479,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          92.79800431902069,
+          2.3868214288224165,
+          0.0
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "wilting-point",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 5.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.09956403945159947,
+          0.05,
+          0.09956403945159947,
+          0.0,
+          10.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          100.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          20.080000008,
+          100.0,
+          20.0,
+          20.080000008,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "ks-below-zero-threshold",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 5.0 20.080000008 100.0 20.0 20.080000008 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.09999302861729842,
+          0.05,
+          0.09999302861729842,
+          0.0,
+          10.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          0.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          20.08,
+          100.0,
+          20.0,
+          20.08,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "full-decline-boundary",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 5.0 20.08 100.0 20.0 20.08 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.09956403945159947,
+          0.05,
+          0.09956403945159947,
+          0.0,
+          10.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          100.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          0.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "zero-daily-gdd",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 0.0 5.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.1,
+          0.05,
+          0.1,
+          0.0,
+          0.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          100.0,
+          0.65
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 24,
+        "reduction_cover_pct": 40,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          110.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "fertility-scaled-decline",
+      "native_input": "2 0.05 0.95 0.012 0.006 24 40 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 0\n100.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n110.0 10.0 5.0 90.0 100.0 20.0 90.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.09973699624827194,
+          0.05,
+          0.09973699624827194,
+          0.0,
+          10.0,
+          0.1,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          13.783218708756262,
+          0.65
+        ],
+        [
+          0.10926069062136823,
+          0.05,
+          0.10926069062136823,
+          0.0,
+          0.0,
+          0.1,
+          0.10926069062136823,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.01,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.051,
+        0.01,
+        0.051,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.06,
+        0.1,
+        20.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          200.0,
+          100.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ],
+        [
+          210.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "dormancy-floor",
+      "native_input": "2 0.01 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.051 0.01 0.051 0 10.0 0.06 0.1 20.0 1 0\n200.0 100.0 5.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n210.0 10.0 5.0 90.0 100.0 20.0 90.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.03,
+          0.01,
+          0.03,
+          0.0,
+          110.0,
+          0.06,
+          0.1,
+          25.0,
+          1.0,
+          0.0,
+          100.0,
+          100.0,
+          0.5850000000000001
+        ],
+        [
+          0.03382490554738127,
+          0.01,
+          0.03382490554738127,
+          0.0,
+          0.0,
+          0.06,
+          0.1,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.01,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.0004,
+        0.0004,
+        0.0004,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.0004,
+        0.1,
+        10.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "small-top-delayed",
+      "native_input": "1 0.01 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.0004 0.0004 0.0004 0 10.0 0.0004 0.1 10.0 1 0\n100.0 10.0 5.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.0004,
+          0.0004,
+          0.0004,
+          0.0,
+          20.0,
+          0.0004,
+          0.1,
+          15.0,
+          1.0,
+          1.0,
+          -9.0,
+          100.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.01,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 0
+      },
+      "canopy_state": [
+        0.0004,
+        0.0004,
+        0.0004,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.0004,
+        0.1,
+        10.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "small-top-no-delay",
+      "native_input": "1 0.01 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 0\n0.0004 0.0004 0.0004 0 10.0 0.0004 0.1 10.0 1 0\n100.0 10.0 5.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          20.0,
+          0.0004,
+          0.1,
+          15.0,
+          1.0,
+          1.0,
+          -9.0,
+          100.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 0
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        1000000.0,
+        0.1,
+        0.1,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          20.0,
+          100.0,
+          20.0,
+          20.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "overflow-guard",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 0\n0.1 0.05 0.1 0 1000000.0 0.1 0.1 0.0 1 0\n100.0 10.0 5.0 20.0 100.0 20.0 20.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          1000010.0,
+          0.1,
+          0.1,
+          5.0,
+          1.0,
+          1.0,
+          100.0,
+          100.0,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 0
+      },
+      "canopy_state": [
+        0.105,
+        0.05,
+        0.105,
+        0
+      ],
+      "senescence_state": [
+        10.0,
+        0.1,
+        0.105,
+        0.0,
+        1,
+        0
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          36.0,
+          100.0,
+          20.0,
+          36.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "log-guard",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 0\n0.105 0.05 0.105 0 10.0 0.1 0.105 0.0 1 0\n100.0 10.0 5.0 36.0 100.0 20.0 36.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.10499999999999998,
+          0.05,
+          0.10499999999999998,
+          0.0,
+          20.0,
+          0.1,
+          0.105,
+          0.0,
+          1.0,
+          0.0,
+          100.0,
+          13.783218708756262,
+          0.5850000000000001
+        ]
+      ]
+    },
+    {
+      "parameters": {
+        "initial_cover": 0.05,
+        "maximum_cover": 0.95,
+        "growth": 0.012,
+        "decline": 0.006,
+        "reduction_growth_pct": 0,
+        "reduction_cover_pct": 0,
+        "p_senescence": 0.65,
+        "senescence_shape": 3.0,
+        "fao_correction": 1,
+        "adjustment_factor": 1.0,
+        "beta_pct": 10,
+        "delay_eto_mm": 40
+      },
+      "canopy_state": [
+        0.1,
+        0.05,
+        0.1,
+        0
+      ],
+      "senescence_state": [
+        0.0,
+        0.0,
+        0.1,
+        0.0,
+        0,
+        1
+      ],
+      "forcing": [
+        [
+          100.0,
+          10.0,
+          5.0,
+          90.0,
+          100.0,
+          20.0,
+          90.0,
+          100.0,
+          20.0,
+          0
+        ]
+      ],
+      "name": "no-more-crop-sticky",
+      "native_input": "1 0.05 0.95 0.012 0.006 0 0 0.65 3.0 1 1.0 10 40\n0.1 0.05 0.1 0 0.0 0.0 0.1 0.0 0 1\n100.0 10.0 5.0 90.0 100.0 20.0 90.0 100.0 20.0 0\n",
+      "native_finite": true,
+      "expected": [
+        [
+          0.11274968515793758,
+          0.05,
+          0.11274968515793758,
+          0.0,
+          0.0,
+          0.0,
+          0.11274968515793758,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.65
+        ]
+      ]
+    }
+  ]
+}

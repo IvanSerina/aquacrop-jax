@@ -1,4 +1,4 @@
-"""Potential canopy-cover and evapotranspiration operators."""
+"""Canopy-cover state recurrences and evapotranspiration operators."""
 
 from __future__ import annotations
 
@@ -33,6 +33,63 @@ class EarlyVegetativeCanopyState(NamedTuple):
     initial_adjusted: jax.Array
     maximum_adjusted: jax.Array
     protected: jax.Array
+
+
+class WaterSenescenceState(NamedTuple):
+    """Persistent state in the water-senescence part of DetermineCCiGDD."""
+    time_gdd: jax.Array
+    top_cover: jax.Array
+    withered_cover: jax.Array
+    eto_stress_sum_mm: jax.Array
+    evaporation_limited: jax.Array
+    no_more_crop: jax.Array
+
+
+def senescence_threshold_for_eto(eto_mm, default_threshold, time_gdd,
+                                 fao_correction=True, adjustment_factor=1.0,
+                                 beta_pct=10.0, with_beta=True):
+    """AdjustpSenescenceToETo; beta and clipping belong only to FAOCorrection."""
+    eto, threshold, time, factor, beta = [jnp.asarray(v, F64) for v in
+        (eto_mm, default_threshold, time_gdd, adjustment_factor, beta_pct)]
+
+    def adjusted(_):
+        value = threshold + factor * 0.04 * (5.0 - eto) * jnp.log10(
+            10.0 - 9.0 * threshold)
+        value = jnp.where((time > 0.0001) & with_beta,
+                          value * (1.0 - beta / 100.0), value)
+        return jnp.where(value >= 1.0, 0.98, jnp.maximum(value, 0.0))
+
+    return lax.cond(jnp.asarray(fao_correction, jnp.bool_), adjusted,
+                    lambda _: threshold, operand=None)
+
+
+def senescence_gdd_decline_coefficient(relative_depletion, p_senescence,
+                                       shape_factor, decline_coefficient,
+                                       maximum_cover, stress_maximum_cover):
+    """DetermineGDDCDCadjustedWaterStress with its native KsSen guard.
+
+    p_senescence must be the ETo-adjusted threshold *without* beta. Native
+    roundoff can produce a zero coefficient just above that threshold;
+    the caller must reject a singular log-time recurrence, not move pSen.
+    """
+    relative, threshold, shape, decline, maximum, stress_maximum = [
+        jnp.asarray(v, F64) for v in (relative_depletion, p_senescence,
+            shape_factor, decline_coefficient, maximum_cover, stress_maximum_cover)]
+    full = decline * ((stress_maximum + 2.29) / (maximum + 2.29))
+
+    def dry(_):
+        def partial(_):
+            ks = stress_coefficient(relative, threshold, 0.999, shape)
+            return lax.cond(ks > 1e-6,
+                lambda _: (full * (1.0 - jnp.exp(8.0 * jnp.log(ks))),
+                           100.0 * (1.0 - ks)),
+                lambda _: (jnp.asarray(.0001, F64), jnp.asarray(0., F64)), None)
+
+        return lax.cond(relative >= .999,
+                        lambda _: (full, jnp.asarray(100., F64)), partial, None)
+
+    return lax.cond(relative <= threshold,
+                    lambda _: (jnp.asarray(.0001, F64), jnp.asarray(0., F64)), dry, None)
 
 
 def leaf_thresholds_for_eto(eto_mm, default_upper, default_lower,
@@ -186,6 +243,128 @@ def early_vegetative_gdd_step(
     next_state, stress = lax.cond(active & ~(before | after), growing,
                                   inactive, operand=None)
     return next_state, stress, valid
+
+
+def early_water_senescence_gdd_step(
+        state, canopy, previous_cover, cumulative_gdd, daily_gdd,
+        emergence_gdd, senescence_gdd, final_growth_gdd,
+        initial_cover, crop_initial_cover, maximum_cover, stress_maximum_cover,
+        decline_coefficient, effective_water_mm, effective_fc_mm,
+        effective_wp_mm, eto_mm, p_senescence, senescence_shape_factor,
+        delay_eto_mm, *, canopy_valid, fao_correction=True,
+        adjustment_factor=1.0, beta_pct=10.0):
+    """Apply DetermineCCiGDD steps 4, 5 and 7 before natural senescence.
+
+    ``canopy`` is today's vegetative result; ``previous_cover`` is yesterday's
+    CCiPrev. The effective water zone is selected after pre-ET water/salt
+    transport. CCoTotal and Crop.CCo are distinct inputs (e.g. with weeds).
+    A false validity flag forbids consuming the returned state, including
+    the native near-threshold singularity where KsSen rounds to one.
+    Late-season decline and rewatering are deliberately outside this operator.
+    """
+    (previous, gdd, daily, emergence, senescence, final, initial, crop_initial,
+     maximum, stress_maximum, decline, actual, fc, wp, eto, psen, shape,
+     delay) = [jnp.asarray(v, F64) for v in (
+        previous_cover, cumulative_gdd, daily_gdd, emergence_gdd,
+        senescence_gdd, final_growth_gdd, initial_cover, crop_initial_cover,
+        maximum_cover, stress_maximum_cover, decline_coefficient,
+        effective_water_mm, effective_fc_mm, effective_wp_mm, eto_mm,
+        p_senescence, senescence_shape_factor, delay_eto_mm)]
+    canopy = EarlyVegetativeCanopyState(
+        *[jnp.asarray(v, F64) for v in canopy[:3]], jnp.asarray(canopy.protected, jnp.bool_))
+    state = WaterSenescenceState(
+        *[jnp.asarray(v, F64) for v in state[:4]],
+        jnp.asarray(state.evaporation_limited, jnp.bool_),
+        jnp.asarray(state.no_more_crop, jnp.bool_))
+    supported = (jnp.asarray(canopy_valid, jnp.bool_) & (gdd > emergence)
+                 & (gdd < senescence) & (fc > wp))
+
+    def invalid(_):
+        return canopy, state, jnp.asarray(-9., F64), jnp.asarray(False)
+
+    def active(_):
+        threshold = senescence_threshold_for_eto(
+            eto, psen, state.time_gdd, fao_correction, adjustment_factor, beta_pct)
+        onset = (actual < fc - threshold * (fc - wp)) & ~canopy.protected
+
+        def dry(_):
+            top = jnp.where(jnp.abs(state.time_gdd) < jnp.finfo(F64).eps,
+                            canopy.cover, state.top_cover)
+            time = state.time_gdd + daily
+            coefficient_threshold = senescence_threshold_for_eto(
+                eto, psen, time, fao_correction, adjustment_factor, beta_pct,
+                with_beta=False)
+            cdc, stress = senescence_gdd_decline_coefficient(
+                (fc - actual) / (fc - wp), coefficient_threshold, shape,
+                decline, maximum, stress_maximum)
+
+            def dormant_cover(_):
+                return jnp.where(.05 > crop_initial,
+                    crop_initial + (1.0 - state.eto_stress_sum_mm / delay) *
+                    (.05 - crop_initial), crop_initial)
+
+            def exhausted(_):
+                exhausted = ((state.eto_stress_sum_mm > delay)
+                             | (jnp.abs(delay) < jnp.finfo(F64).eps) | (gdd >= final))
+                return lax.cond(exhausted, lambda _: jnp.asarray(0., F64),
+                                dormant_cover, None)
+
+            def normal_top(_):
+                guarded = ((time * cdc * 3.33 / (top + 2.29) > 100.0)
+                           | (previous >= 1.05 * top))
+
+                def logarithmic(_):
+                    argument = 1.0 + (1.0 - previous / top) / .05
+                    regular = (cdc > 0.0) & (argument > 0.0)
+
+                    def calculate(_):
+                        elapsed = jnp.log(argument) / (cdc * 3.33 / (top + 2.29))
+                        value = top * (1.0 - .05 * (
+                            jnp.exp((elapsed + daily) * cdc * 3.33 / (top + 2.29)) - 1.0))
+                        return value, jnp.isfinite(value)
+
+                    return lax.cond(regular, calculate,
+                                    lambda _: (jnp.asarray(0., F64), jnp.asarray(False)), None)
+
+                candidate, regular = lax.cond(guarded,
+                    lambda _: (exhausted(None), jnp.asarray(True)), logarithmic, None)
+                candidate = jnp.maximum(candidate, 0.0)
+                floor = ((delay > 0.0) & (state.eto_stress_sum_mm <= delay)
+                         & (gdd < final) & ((candidate < crop_initial) | (candidate < .05)))
+                candidate = lax.cond(floor, dormant_cover, lambda _: candidate, None)
+                return candidate, regular
+
+            candidate, regular = lax.cond(top < .001,
+                lambda _: (exhausted(None), jnp.asarray(True)), normal_top, None)
+            candidate = jnp.minimum(candidate, stress_maximum)
+            cover = jnp.minimum(candidate, previous)
+            next_canopy = EarlyVegetativeCanopyState(
+                cover, jnp.minimum(cover, initial), cover, canopy.protected)
+            # Native accumulation uses CCiSen before the CCiPrev no-jump cap.
+            low = ((round_fortran(10000.0 * candidate) <= 500.0)
+                   | (round_fortran(10000.0 * candidate) <=
+                      round_fortran(10000.0 * crop_initial)))
+            next_state = WaterSenescenceState(
+                time, top, state.withered_cover,
+                state.eto_stress_sum_mm + jnp.where(low, eto, 0.0),
+                jnp.asarray(True), state.no_more_crop)
+            return next_canopy, next_state, stress, regular
+
+        def wet(_):
+            return canopy, WaterSenescenceState(
+                jnp.asarray(0., F64), state.top_cover, state.withered_cover,
+                jnp.asarray(0., F64), state.evaporation_limited,
+                state.no_more_crop), jnp.asarray(0., F64), jnp.asarray(True)
+
+        next_canopy, next_state, stress, regular = lax.cond(onset, dry, wet, None)
+        next_state = next_state._replace(
+            withered_cover=jnp.maximum(next_state.withered_cover, next_canopy.cover),
+            no_more_crop=(next_state.no_more_crop |
+                          (round_fortran(1000.0 * next_canopy.cover) <= 0.0)))
+        return lax.cond(regular, lambda _: (next_canopy, next_state, stress, regular),
+                        invalid, None)
+
+    return lax.cond(supported, active, invalid, None)
 
 
 def protected_seedling_gdd_step(state, cumulative_gdd, daily_gdd,
