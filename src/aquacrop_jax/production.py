@@ -24,6 +24,66 @@ class ProductionTrajectory(NamedTuple):
     biomass_increment: jax.Array
 
 
+class FertilityStressUpdate(NamedTuple):
+    """Daily fertility stress and next-step state from DetermineBiomassAndYield."""
+    stress_pct: jax.Array
+    previous_stress_pct: jax.Array
+    sum_kc_top_stress: jax.Array
+
+
+def dynamic_fertility_stress_step(
+        biomass_total, biomass_unlimited, potential_biomass_fraction,
+        coefficient0, coefficient1, coefficient2, management_stress_pct,
+        previous_stress_pct, sum_kc_top, *, calibrated=True,
+        grain_crop=False, determinacy_linked=False, dayi=0,
+        delayed_days=0, crop_day1=1, flowering_day=0,
+        flowering_length=0):
+    """Port the dynamic soil-fertility update in ``simul.f90``.
+
+    Biomass arguments are cumulative values *after* the current day's biomass
+    update, matching ``DetermineBiomassAndYield``. The returned previous
+    stress is the value to carry to the next step; ``BUDGET_module`` consumes
+    this value before the next production update.
+    """
+    total, unlimited, fraction, b0, b1, b2, top = [
+        jnp.asarray(value, F64) for value in
+        (biomass_total, biomass_unlimited, potential_biomass_fraction,
+         coefficient0, coefficient1, coefficient2, sum_kc_top)]
+    management = jnp.asarray(management_stress_pct, jnp.int32)
+    previous = jnp.asarray(previous_stress_pct, jnp.int32)
+    calibrated = jnp.asarray(calibrated, jnp.bool_)
+
+    safe_unlimited = jnp.where(unlimited > 0.001, unlimited, 1.0)
+    biomass_adjustment = 100.0 * (fraction + (fraction - total / safe_unlimited))
+    polynomial = b0 + b1 * biomass_adjustment + b2 * biomass_adjustment ** 2
+    rounded = jnp.asarray(round_fortran(polynomial, bits=8), jnp.int32)
+    calibrated_stress = jnp.where(
+        biomass_adjustment >= 100.0, 0,
+        jnp.where(biomass_adjustment <= jnp.finfo(F64).eps, 80,
+                  jnp.where(rounded < 0, management,
+                            jnp.minimum(rounded, 80))))
+    calibrated_stress = jnp.minimum(calibrated_stress, management)
+
+    active = (management > 0) & (unlimited > 0.001) & calibrated
+    fallback = jnp.where((management == 0) | (~calibrated), 0, management)
+    stress = jnp.where(active, calibrated_stress, fallback)
+
+    half_flowering = jnp.asarray(
+        round_fortran(jnp.asarray(flowering_length, F64) / 2.0), jnp.int32)
+    post_vegetative = (jnp.asarray(grain_crop, jnp.bool_) &
+        jnp.asarray(determinacy_linked, jnp.bool_) &
+        (jnp.asarray(dayi, jnp.int32) >
+         (jnp.asarray(delayed_days, jnp.int32) +
+          jnp.asarray(crop_day1, jnp.int32) +
+          jnp.asarray(flowering_day, jnp.int32) + half_flowering)))
+    monotonic = active & post_vegetative
+    stress = jnp.where(monotonic, jnp.maximum(stress, previous), stress)
+    stress = jnp.where(monotonic, jnp.minimum(stress, management), stress)
+    stress = jnp.asarray(stress, jnp.int32)
+    return FertilityStressUpdate(
+        stress, stress, (1.0 - stress.astype(F64) / 100.0) * top)
+
+
 def co2_water_productivity_factor(co2_ppm, water_productivity_g_m2,
                                   sink_strength_pct):
     co2 = jnp.asarray(co2_ppm, F64)

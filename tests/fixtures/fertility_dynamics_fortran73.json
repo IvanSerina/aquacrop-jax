@@ -1,0 +1,39 @@
+{
+  "source": "AquaCrop 7.3 DetermineBiomassAndYield linked to immutable reference objects; forage regrowth isolates the fertility update",
+  "input_fields": [
+    "management_stress_pct",
+    "calibrated",
+    "biomass_total_before",
+    "biomass_unlimited",
+    "potential_biomass_fraction",
+    "coefficient0",
+    "coefficient1",
+    "coefficient2",
+    "previous_stress_pct",
+    "sum_kc_top",
+    "eto",
+    "actual_transpiration"
+  ],
+  "output_fields": [
+    "stress_pct",
+    "previous_stress_pct",
+    "biomass_total_after",
+    "biomass_unlimited_after",
+    "sum_kc_top_stress"
+  ],
+  "cases": [
+    {"name": "active-response", "input": [50, 1, 0.4, 1.0, 0.7, 5, 0.4, 0, 17, 100, 0, 0], "expected": [45, 45, 0.4, 1.0, 55]},
+    {"name": "half-even-midpoint", "input": [50, 1, 0.5, 1.0, 0.5, 0, 0.39, 0, 17, 100, 0, 0], "expected": [20, 20, 0.5, 1.0, 80]},
+    {"name": "zero-biomass-adjustment", "input": [50, 1, 1.0, 1.0, 0.5, 1, 1, 0, 17, 100, 0, 0], "expected": [50, 50, 1.0, 1.0, 50]},
+    {"name": "biomass-adjustment-at-least-100", "input": [50, 1, 0.0, 1.0, 1.0, 10, 0.5, 0, 17, 100, 0, 0], "expected": [0, 0, 0.0, 1.0, 100]},
+    {"name": "unlimited-biomass-below-threshold", "input": [50, 1, 0.0, 0.0005, 0.7, 0, 0.5, 0, 17, 100, 0, 0], "expected": [50, 50, 0.0, 0.0005, 50]},
+    {"name": "unlimited-biomass-zero", "input": [50, 1, 0.0, 0.0, 0.7, 0, 0.5, 0, 17, 100, 0, 0], "expected": [50, 50, 0.0, 0.0, 50]},
+    {"name": "uncalibrated", "input": [50, 0, 0.4, 1.0, 0.7, 10, 0.5, 0, 17, 100, 0, 0], "expected": [0, 0, 0.4, 1.0, 100]},
+    {"name": "management-stress-zero", "input": [0, 1, 0.4, 1.0, 0.7, 10, 0.5, 0, 17, 100, 0, 0], "expected": [0, 0, 0.4, 1.0, 100]},
+    {"name": "negative-polynomial-falls-back-to-management", "input": [50, 1, 0.4, 1.0, 0.7, -5, 0, 0, 17, 100, 0, 0], "expected": [50, 50, 0.4, 1.0, 50]},
+    {"name": "stress-capped-at-80", "input": [100, 1, 1.0, 1.0, 0.7, 90, 0, 0, 17, 100, 0, 0], "expected": [80, 80, 1.0, 1.0, 20]},
+    {"name": "stress-capped-at-management", "input": [50, 1, 1.0, 1.0, 0.7, 90, 0, 0, 17, 100, 0, 0], "expected": [50, 50, 1.0, 1.0, 50]},
+    {"name": "daily-biomass-is-updated-before-stress", "input": [50, 1, 0.4, 1.0, 0.7, 0, 0.3, 0, 17, 100, 5, 1], "expected": [29, 29, 0.43, 1.0, 71]},
+    {"name": "native-clipping-after-active-response", "input": [50, 1, 1.0, 1.0, 0.7, 0, 0.5, 0, 17, 100, 0, 0], "expected": [20, 20, 1.0, 1.0, 80]}
+  ]
+}
