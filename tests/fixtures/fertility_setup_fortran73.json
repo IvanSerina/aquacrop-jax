@@ -26,7 +26,9 @@
     "LIST/Ottawa.PRM": "6e4fe103f3273625704ab28b8daecc48f4603080cedb2cf4473e5285bb8ad832",
     "DATA/AlfOttawaGDD.CRO": "82068005533a2c300fa3433f8e129eae4cf07aa6f17fbe2637450c06cfda2d8a",
     "DATA/Ottawa.MAN": "d5564df861eea76eae7655b1485055d99f42c3e099b5ff757c76c7be7d4b9a0a",
-    "DATA/Ottawa.Tnx": "ddd0bb364495b39cff953c8365c0d93b33477d2ed41920ec3c5cc14a85d252cb"
+    "DATA/Ottawa.Tnx": "ddd0bb364495b39cff953c8365c0d93b33477d2ed41920ec3c5cc14a85d252cb",
+    "SIMUL/MaunaLoa.CO2": "fe435ffbe638db0425bd9083649e467ab9daa9dc2a2b1dd2bd6fb2c40dac6df6",
+    "PARAM/Ottawa.PPn": "42307e29688348f2f34b7fb7a815afcaae6f76b09db1b2e1f74bafd6f9ca8f88"
   },
   "setup_fields": [
     "management_stress_pct",
@@ -3066,6 +3068,76 @@
       8.11,
       20.81
     ]
+  ],
+  "thermal_fields": [
+    "emergence_gdd",
+    "full_canopy_gdd",
+    "senescence_gdd",
+    "maturity_gdd",
+    "hi_gdd",
+    "thermal_growth",
+    "thermal_decline",
+    "calendar_growth",
+    "calendar_decline",
+    "water_productivity",
+    "kc_top",
+    "kc_decline_pct",
+    "late_evaporation_pct",
+    "base_temperature",
+    "upper_temperature",
+    "minimum_gdd",
+    "default_tmin",
+    "default_tmax",
+    "simulation_co2",
+    "sum_kc_top",
+    "sum_kc_top_stress"
+  ],
+  "thermal_parameters": [
+    5.0,
+    461.0,
+    1803.0,
+    1803.0,
+    118.0,
+    0.012,
+    0.006,
+    0.14184615384615384,
+    0.0027272727272727696,
+    15.0,
+    1.15,
+    11.0,
+    60.0,
+    5.0,
+    30.0,
+    8.0,
+    12.0,
+    28.0,
+    398.82,
+    135.11909766305862,
+    68.12332395744363
+  ],
+  "reference_calendar_fields": [
+    "emergence_day",
+    "full_canopy_day",
+    "flowering_day",
+    "flowering_length",
+    "senescence_day",
+    "maturity_day",
+    "hi_days",
+    "calendar_growth",
+    "calendar_decline",
+    "hi_rate"
+  ],
+  "reference_calendar": [
+    1.0,
+    40.0,
+    0.0,
+    0.0,
+    164.0,
+    164.0,
+    12.0,
+    0.1383,
+    0.030000000000000467,
+    8.333333333333334
   ],
   "cases": [
     {

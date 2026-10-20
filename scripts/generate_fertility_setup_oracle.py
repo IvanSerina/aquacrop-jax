@@ -46,13 +46,16 @@ def generate(output):
     samples = list(map(float, lines[2].split()[1:]))
     assert lines[3].startswith("reference ")
     _, reference_year, reference_co2 = lines[3].split()
-    for case, line in zip(cases, lines[4:], strict=True):
+    assert lines[4].startswith("thermal ") and lines[5].startswith("refcalendar ")
+    thermal = list(map(float, lines[4].split()[1:]))
+    reference_calendar = list(map(float, lines[5].split()[1:]))
+    for case, line in zip(cases, lines[6:], strict=True):
         stress, *values = map(float, line.split())
         assert stress == case["stress"]
         case["coefficients"] = values[:3]
         case["fraction"] = values[3]
     inputs = ["LIST/Ottawa.PRM", "DATA/AlfOttawaGDD.CRO", "DATA/Ottawa.MAN",
-              "DATA/Ottawa.Tnx"]
+              "DATA/Ottawa.Tnx", "SIMUL/MaunaLoa.CO2", "PARAM/Ottawa.PPn"]
     data = dict(
         source="Native Ottawa InitializeRunPart1 and RelationshipsForFertilityAndSaltStress",
         precision="Unrounded float64; native setup in disposable testcase copy",
@@ -71,7 +74,16 @@ def generate(output):
         timing_inputs=timing, biomass_percentages=samples[3:],
         fitted_coefficients=samples[:3], reference_year=int(reference_year),
         reference_co2=float(reference_co2), reference_monthly_temperature=monthly,
-        reference_daily_temperature=daily, crop_reference_temperature=crop_daily, cases=cases)
+        reference_daily_temperature=daily, crop_reference_temperature=crop_daily,
+        thermal_fields=["emergence_gdd", "full_canopy_gdd", "senescence_gdd", "maturity_gdd", "hi_gdd",
+            "thermal_growth", "thermal_decline", "calendar_growth", "calendar_decline",
+            "water_productivity", "kc_top", "kc_decline_pct", "late_evaporation_pct",
+            "base_temperature", "upper_temperature", "minimum_gdd", "default_tmin", "default_tmax",
+            "simulation_co2", "sum_kc_top", "sum_kc_top_stress"],
+        thermal_parameters=thermal,
+        reference_calendar_fields=["emergence_day", "full_canopy_day", "flowering_day", "flowering_length",
+            "senescence_day", "maturity_day", "hi_days", "calendar_growth", "calendar_decline", "hi_rate"],
+        reference_calendar=reference_calendar, cases=cases)
     output.write_text(json.dumps(data, indent=2) + "\n")
     print(f"{output}: {len(cases)} native cases")
 
