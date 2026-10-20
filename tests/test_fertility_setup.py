@@ -51,8 +51,9 @@ def test_setup_fixture_matches_live_native_initialization(tmp_path):
     for key in ("reference_monthly_temperature", "reference_daily_temperature",
                 "crop_reference_temperature"):
         np.testing.assert_array_equal(actual[key], FIXTURE[key])
-    for key in ("thermal_parameters", "reference_calendar"):
+    for key in ("thermal_parameters", "reference_calendar", "reference_sum_kc_top", "reference_levels"):
         np.testing.assert_allclose(actual[key], FIXTURE[key], rtol=0., atol=1e-14)
+    assert actual["senescence_exponent"] == FIXTURE["senescence_exponent"]
     for observed, expected in zip(actual["cases"], CASES, strict=True):
         assert (observed["stress"], observed["calibrated"]) == (expected["stress"], expected["calibrated"])
         np.testing.assert_allclose(observed["coefficients"], expected["coefficients"],

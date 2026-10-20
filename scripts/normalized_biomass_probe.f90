@@ -14,7 +14,7 @@ program normalized_biomass_probe
     integer(intEnum) :: mode
     real(dp) :: cco, ccx, cgc, gddcgc, cdc, gddcdc, kc, ageing, late
     real(dp) :: base, upper, tmin, tmax, minimum_gdd, co2, total, sum_kc
-    real(dp) :: decline, ratio, wp, kc_override
+    real(dp) :: decline, ratio, wp, kc_override, senescence_exponent
     call SetTemperatureFile('(None)')
     call SetSimulParam_GDDMethod(3_int8)
     call SetSimulParam_KcWetBare(1.1_dp)
@@ -27,7 +27,8 @@ program normalized_biomass_probe
             kc, ageing, late, base, upper, tmin, tmax, minimum_gdd, co2, &
             stress, red_growth, red_cover, red_wp, decline, full_sf, gfull_sf, &
             ratio, wp, yield_wp, yield_days, switch, flower, reproductive, &
-            fertility, red_stomatal, kc_override
+            fertility, red_stomatal, kc_override, senescence_exponent
+        call SetSimulParam_ExpFsen(senescence_exponent)
         call SetCrop_subkind(subkind_forage)
         if (reproductive /= 0) call SetCrop_subkind(subkind_grain)
         sum_kc = SeasonalSumOfKcPot(initial_day, initial_gdd, l0, l12, l123, &

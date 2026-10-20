@@ -24,7 +24,8 @@ def evaluate(row):
     gdd = jnp.full(80, degrees_day(row[21], row[22], row[23], row[24], 3))
     args = (gdd, tuple(row[4:8]), tuple(row[8:12]), *row[12:21], row[26], row[25])
     calendar = dict(gdd_mode=row[0] == 0,
-                    initial_cover_day=row[1], initial_cover_gdd=row[2])
+                    initial_cover_day=row[1], initial_cover_gdd=row[2],
+                    senescence_exponent=row[44])
     baseline = reference_crop_transpiration(*args, **calendar).sum_kc
     sum_kc_top = jnp.where(row[43] >= 0., row[43], baseline)
     result = normalized_biomass_trajectory(*args, **calendar, sum_kc_top=sum_kc_top,

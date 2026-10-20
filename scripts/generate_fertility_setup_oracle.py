@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REFERENCE = ROOT.parent / "aquacrop-fortran"
 
 
-def generate(output):
+def generate(output, testcase_root=None):
+    testcase_root = REFERENCE / "testcase" if testcase_root is None else Path(testcase_root)
     objects = sorted(p for p in (REFERENCE / "src").glob("*.o")
                      if p.name != "aquacrop.o")
     if not shutil.which("gfortran") or not objects:
@@ -25,7 +26,7 @@ def generate(output):
             "-o", str(probe), str(ROOT / "scripts/fertility_setup_probe.f90"),
             *map(str, objects)], check=True, capture_output=True, text=True)
         testcase = temporary / "testcase"
-        shutil.copytree(REFERENCE / "testcase", testcase,
+        shutil.copytree(testcase_root, testcase,
                         ignore=shutil.ignore_patterns("OUTP", "OUTP_REF"))
         (testcase / "OUTP").mkdir()
         inputs = str(len(cases)) + "\n" + "\n".join(
@@ -49,7 +50,12 @@ def generate(output):
     assert lines[4].startswith("thermal ") and lines[5].startswith("refcalendar ")
     thermal = list(map(float, lines[4].split()[1:]))
     reference_calendar = list(map(float, lines[5].split()[1:]))
-    for case, line in zip(cases, lines[6:], strict=True):
+    assert lines[6].startswith("refkc ")
+    reference_kc = float(lines[6].split()[1])
+    senescence_exponent = float(lines[6].split()[2])
+    levels = [list(map(float, line.split()[1:])) for line in lines[7:15]]
+    assert all(line.startswith("level ") for line in lines[7:15])
+    for case, line in zip(cases, lines[15:], strict=True):
         stress, *values = map(float, line.split())
         assert stress == case["stress"]
         case["coefficients"] = values[:3]
@@ -62,7 +68,7 @@ def generate(output):
         source_sha256={name: hashlib.sha256((REFERENCE / "src" / name).read_bytes()).hexdigest()
                        for name in ("run.f90", "global.f90", "preparefertilitysalinity.f90")},
         objects_sha256={p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in objects},
-        inputs_sha256={name: hashlib.sha256((REFERENCE / "testcase" / name).read_bytes()).hexdigest()
+        inputs_sha256={name: hashlib.sha256((testcase_root / name).read_bytes()).hexdigest()
                        for name in inputs},
         setup_fields=["management_stress_pct", "coefficient0", "coefficient1", "coefficient2",
                       "potential_biomass_fraction", "reduction_growth_pct", "reduction_cover_pct",
@@ -83,7 +89,11 @@ def generate(output):
         thermal_parameters=thermal,
         reference_calendar_fields=["emergence_day", "full_canopy_day", "flowering_day", "flowering_length",
             "senescence_day", "maturity_day", "hi_days", "calendar_growth", "calendar_decline", "hi_rate"],
-        reference_calendar=reference_calendar, cases=cases)
+        reference_calendar=reference_calendar, reference_sum_kc_top=reference_kc,
+        senescence_exponent=senescence_exponent,
+        reference_level_fields=["stress_pct", "full_canopy_sf_day", "full_canopy_sf_gdd",
+            "reduction_growth_pct", "reduction_cover_pct", "reduction_wp_pct", "canopy_decline",
+            "days_per_gdd", "normalized_biomass"], reference_levels=levels, cases=cases)
     output.write_text(json.dumps(data, indent=2) + "\n")
     print(f"{output}: {len(cases)} native cases")
 
@@ -92,4 +102,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path,
         default=ROOT / "tests/fixtures/fertility_setup_fortran73.json")
-    generate(parser.parse_args().output)
+    parser.add_argument("--testcase", type=Path, help="Input testcase to copy; never modified")
+    arguments = parser.parse_args()
+    generate(arguments.output, arguments.testcase)

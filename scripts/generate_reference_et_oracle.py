@@ -18,11 +18,15 @@ def generate(output):
             for name, tmin, tmax in (("warm", 10., 22.), ("cool", 2., 10.), ("zero-gdd", -2., 8.)):
                 row = [mode, initial_day, initial_gdd, 80, 3, 20, 50, 65,
                        25, 200, 500, 650, .05, .95, .18, .012, .036, .006,
-                       1.15, 11., 60., 5., 30., tmin, tmax, 8., 369.41]
+                       1.15, 11., 60., 5., 30., tmin, tmax, 8., 369.41, 2.5]
                 cases.append(dict(name=f"mode-{mode}-initial-{initial_day}-{name}", input=row))
         row = cases[-9]["input"].copy()
-        row[-1] = 550.
+        row[-2] = 550.
         cases.append(dict(name=f"mode-{mode}-co2-550", input=row))
+    for mode, index in ((0, 0), (1, 10)):
+        row = cases[index]["input"].copy()
+        row[-1] = 1.
+        cases.append(dict(name=f"mode-{mode}-native-default-exponent", input=row))
     text = str(len(cases)) + "\n" + "\n".join(
         " ".join(map(str, case["input"])) for case in cases) + "\n"
     with tempfile.TemporaryDirectory(prefix="seasonal-kc-") as directory:
@@ -46,7 +50,7 @@ def generate(output):
             "initial_cover", "maximum_cover", "calendar_growth", "thermal_growth",
             "calendar_decline", "thermal_decline", "kc_top", "kc_decline_pct",
             "late_evaporation_pct", "base_temperature", "upper_temperature",
-            "tmin", "tmax", "minimum_gdd", "co2_ppm"], cases=cases)
+            "tmin", "tmax", "minimum_gdd", "co2_ppm", "senescence_exponent"], cases=cases)
     output.write_text(json.dumps(data, indent=2) + "\n")
     print(f"{output}: {len(cases)} native trajectories")
 

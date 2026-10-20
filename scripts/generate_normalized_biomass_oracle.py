@@ -13,7 +13,7 @@ REFERENCE = ROOT.parent / "aquacrop-fortran/src"
 def generate(output):
     base = json.loads((ROOT / "tests/fixtures/reference_et_fortran73.json").read_text())
     tail = [50, 24, 40, 52, .04, 25, 250, .1, 15., 100, 0, 0, 0, 0, 1, 0, -1.]
-    cases = [dict(name=case["name"], input=case["input"] + tail)
+    cases = [dict(name=case["name"], input=case["input"][:27] + tail + [case["input"][27]])
              for case in base["cases"]]
     for name, changes in (
         ("unlimited-fertility", {27: 0, 28: 0, 29: 0, 30: 0, 31: 0., 32: 20, 33: 200}),
@@ -52,11 +52,11 @@ def generate(output):
         source_sha256={name: hashlib.sha256((REFERENCE / name).read_bytes()).hexdigest()
                        for name in ("global.f90", "tempprocessing.f90")},
         objects_sha256={p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in objects},
-        input_fields=base["input_fields"] + ["fertility_stress_pct", "reduction_growth_pct",
+        input_fields=base["input_fields"][:27] + ["fertility_stress_pct", "reduction_growth_pct",
             "reduction_cover_pct", "reduction_wp_pct", "canopy_decline", "full_canopy_sf_day",
             "full_canopy_sf_gdd", "days_per_gdd", "water_productivity", "wp_yield_pct",
             "yield_formation_days", "switch_day", "flowering_day", "reproductive_crop",
-            "fertility_mode", "reduction_stomatal_pct", "sum_kc_override"], cases=cases)
+            "fertility_mode", "reduction_stomatal_pct", "sum_kc_override", "senescence_exponent"], cases=cases)
     output.write_text(json.dumps(data, indent=2) + "\n")
     print(f"{output}: {len(cases)} native trajectories")
 

@@ -39,7 +39,8 @@ def evaluate(row):
     daily = degrees_day(row[21], row[22], row[23], row[24], 3)
     return reference_crop_transpiration(jnp.full(80, daily),
         tuple(row[4:8]), tuple(row[8:12]), *row[12:21], row[26], row[25],
-        gdd_mode=row[0] == 0, initial_cover_day=row[1], initial_cover_gdd=row[2])
+        gdd_mode=row[0] == 0, initial_cover_day=row[1], initial_cover_gdd=row[2],
+        senescence_exponent=row[27])
 
 
 def test_reference_et_matches_native_seeded_regrowth_and_cold_trajectories():

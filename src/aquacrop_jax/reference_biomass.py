@@ -30,7 +30,7 @@ def normalized_biomass_trajectory(
         reduction_wp_pct=0., reproductive_crop=False, flowering_day=0,
         wp_yield_pct=100., yield_formation_days=0, switch_day=0,
         fertility_mode=True, reduction_stomatal_pct=0., gdd_mode=True,
-        initial_cover_day=0, initial_cover_gdd=0):
+        initial_cover_day=0, initial_cover_gdd=0, senescence_exponent=1.):
     """Reference normalized biomass, with explicit static climate length.
 
     Milestones follow SeasonalSumOfKcPot. WP is the native g/m2 parameter,
@@ -94,7 +94,8 @@ def normalized_biomass_trajectory(
         withered = jnp.where(day_cc >= full_canopy_sf_day, max_sf, withered)
         demand = calculate_potential_et(day_cc, l0, full, senescence, maturity,
             cc, 5., kc_top, kc_decline_pct, maximum_cover, withered,
-            late_evaporation_pct, co2_ppm, daily, minimum_gdd)
+            late_evaporation_pct, co2_ppm, daily, minimum_gdd,
+            senescence_exponent=senescence_exponent)
         tpot = jnp.where(cc > .0001, demand.transpiration_mm, 0.)
         sum_kc += tpot / 5.
 

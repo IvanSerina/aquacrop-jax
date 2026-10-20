@@ -25,7 +25,10 @@ program fertility_setup_probe
         GetCrop_subkind, GetCrop_ModeCycle, GetCrop_GDDaysToFlowering, &
         GetCrop_GDDLengthFlowering, GetCrop_GDDaysToHIo, GetCrop_Planting, &
         GetCrop_DaysToHIo
-    use ac_global, only: GetTnxReferenceYear, DetermineDate, DetermineDayNr
+    use ac_global, only: GetTnxReferenceYear, DetermineDate, DetermineDayNr, GetSimulParam_ExpFsen, &
+        SeasonalSumOfKcPot, CropStressParametersSoilFertility, TimeToMaxCanopySF, &
+        SumCalendarDaysReferenceTnx, rep_EffectStress
+    use ac_tempprocessing, only: Bnormalized
     use ac_preparefertilitysalinity, only: ReferenceStressBiomassRelationship, &
         CO2ForTnxReferenceYear, AdjustCalendarDaysReferenceTnx
     use ac_startunit, only: InitializeTheProgram, InitializeProject
@@ -34,8 +37,11 @@ program fertility_setup_probe
         GetCO2i, GetSumKcTop, GetSumKcTopStress
     implicit none
     real(dp) :: b0, b1, b2, samples(7), ref_cgc, ref_cdc, ref_hi_rate
+    real(dp) :: reference_kc, reference_co2, ratio, normalized
+    type(rep_EffectStress) :: effect
     integer(int32) :: count, index, stress, calibrated
     integer(int32) :: ref_days(7), crop_day, crop_month, crop_year, reference_start
+    integer(int32) :: level, full_sf, gfull_sf, stress_class
 
     call InitializeGlobalStrings()
     call InitializeTheProgram()
@@ -116,6 +122,44 @@ program fertility_setup_probe
         ref_days(7), ref_cgc, ref_cdc, ref_hi_rate)
     write(*, '(a,1x,7(i0,1x),3(es24.16,1x))') 'refcalendar', &
         ref_days, ref_cgc, ref_cdc, ref_hi_rate
+    reference_co2 = CO2ForTnxReferenceYear(GetTnxReferenceYear())
+    reference_kc = SeasonalSumOfKcPot(GetCrop_DaysToCCini(), GetCrop_GDDaysToCCini(), &
+        ref_days(1), ref_days(2), ref_days(5), ref_days(6), ref_days(6), &
+        GetCrop_GDDaysToGermination(), GetCrop_GDDaysToFullCanopy(), &
+        GetCrop_GDDaysToSenescence(), GetCrop_GDDaysToHarvest(), GetCrop_CCo(), &
+        GetCrop_CCx(), ref_cgc, GetCrop_GDDCGC(), ref_cdc, GetCrop_GDDCDC(), &
+        GetCrop_KcTop(), GetCrop_KcDeclineCumul(), real(GetCrop_CCEffectEvapLate(), dp), &
+        GetCrop_Tbase(), GetCrop_Tupper(), GetSimulParam_Tmin(), GetSimulParam_Tmax(), &
+        GetCrop_GDtranspLow(), reference_co2, GetCrop_ModeCycle(), .true.)
+    write(*, '(a,1x,2(es24.16,1x))') 'refkc', reference_kc, GetSimulParam_ExpFsen()
+    do level = 0, 70, 10
+        call CropStressParametersSoilFertility(GetCrop_StressResponse(), level, effect)
+        full_sf = ref_days(2)
+        gfull_sf = GetCrop_GDDaysToFullCanopy()
+        ratio = 1._dp
+        stress_class = level
+        if ((effect%RedCGC /= 0) .or. (effect%RedCCX /= 0)) then
+            call TimeToMaxCanopySF(GetCrop_CCo(), ref_cgc, GetCrop_CCx(), ref_days(1), &
+                ref_days(2), ref_days(5), ref_days(3), ref_days(4), GetCrop_DeterminancyLinked(), &
+                full_sf, effect%RedCGC, effect%RedCCX, stress_class)
+            gfull_sf = SumCalendarDaysReferenceTnx(full_sf, reference_start, reference_start, &
+                GetCrop_Tbase(), GetCrop_Tupper(), GetSimulParam_Tmin(), GetSimulParam_Tmax())
+            if (gfull_sf < GetCrop_GDDaysToSenescence()) &
+                ratio = real(ref_days(5) - full_sf, dp) / (GetCrop_GDDaysToSenescence() - gfull_sf)
+        end if
+        normalized = Bnormalized(GetCrop_DaysToCCini(), GetCrop_GDDaysToCCini(), &
+            ref_days(1), ref_days(2), full_sf, ref_days(5), ref_days(6), ref_days(6), ref_days(3), &
+            GetCrop_GDDaysToGermination(), GetCrop_GDDaysToFullCanopy(), gfull_sf, &
+            GetCrop_GDDaysToSenescence(), GetCrop_GDDaysToHarvest(), GetCrop_WPy(), &
+            0_int32, 0_int32, GetCrop_CCo(), GetCrop_CCx(), ref_cgc, GetCrop_GDDCGC(), &
+            ref_cdc, GetCrop_GDDCDC(), GetCrop_KcTop(), GetCrop_KcDeclineCumul(), &
+            real(GetCrop_CCEffectEvapLate(), dp), GetCrop_WP(), reference_co2, GetCrop_Tbase(), &
+            GetCrop_Tupper(), GetSimulParam_Tmin(), GetSimulParam_Tmax(), GetCrop_GDtranspLow(), &
+            ratio, reference_kc, level, effect%RedCGC, effect%RedCCX, effect%RedWP, effect%RedKsSto, &
+            0_int8, 0_int32, effect%CDecline, -.01_dp, GetCrop_ModeCycle(), .true., .true.)
+        write(*, '(a,1x,6(i0,1x),3(es24.16,1x))') 'level', level, full_sf, gfull_sf, &
+            int(effect%RedCGC), int(effect%RedCCX), int(effect%RedWP), effect%CDecline, ratio, normalized
+    end do
     read(*, *) count
     do index = 1, count
         read(*, *) stress, calibrated

@@ -23,7 +23,8 @@ def reference_crop_transpiration(
         daily_gdd, calendar_days, thermal_days, initial_cover, maximum_cover,
         calendar_growth, thermal_growth, calendar_decline, thermal_decline,
         kc_top, kc_decline_pct, late_evaporation_pct, co2_ppm, minimum_gdd,
-        *, gdd_mode=True, initial_cover_day=0, initial_cover_gdd=0):
+        *, gdd_mode=True, initial_cover_day=0, initial_cover_gdd=0,
+        senescence_exponent=1.):
     """Reference Kc using ETo=5, including first growth day and regrowth.
 
     Both milestone tuples contain emergence, full canopy, senescence and
@@ -89,7 +90,8 @@ def reference_crop_transpiration(
         withered = jnp.where(day >= l12, maximum, cc)
         demand = calculate_potential_et(day_cc, l0, l12, l123, maturity,
             cc, 5., kc_top, kc_decline_pct, maximum, withered,
-            late_evaporation_pct, co2_ppm, daily, minimum_gdd)
+            late_evaporation_pct, co2_ppm, daily, minimum_gdd,
+            senescence_exponent=senescence_exponent)
         tpot = jnp.where(cc > .0001, demand.transpiration_mm, 0.)
         sum_kc = sum_kc + tpot / 5.
         return (total_gdd, from_day1, growth_on, sum_kc), (cc, tpot, sum_kc)

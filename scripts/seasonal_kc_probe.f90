@@ -10,6 +10,7 @@ program seasonal_kc_probe
     integer(intEnum) :: mode
     real(dp) :: cco, ccx, cgc, gddcgc, cdc, gddcdc, kc, ageing, late
     real(dp) :: base, upper, tmin, tmax, minimum_gdd, co2, total
+    real(dp) :: senescence_exponent
     call SetTemperatureFile('(None)')
     call SetSimulParam_GDDMethod(3_int8)
     call SetSimulParam_KcWetBare(1.1_dp)
@@ -19,7 +20,8 @@ program seasonal_kc_probe
     do index = 1, count
         read(*, *) mode, initial_day, initial_gdd, n, l0, l12, l123, maturity, &
             g0, g12, g123, g_maturity, cco, ccx, cgc, gddcgc, cdc, gddcdc, &
-            kc, ageing, late, base, upper, tmin, tmax, minimum_gdd, co2
+            kc, ageing, late, base, upper, tmin, tmax, minimum_gdd, co2, senescence_exponent
+        call SetSimulParam_ExpFsen(senescence_exponent)
         do day = 1, n
             total = SeasonalSumOfKcPot(initial_day, initial_gdd, l0, l12, l123, &
                 maturity, day, g0, g12, g123, g_maturity, cco, ccx, cgc, gddcgc, &
