@@ -70,12 +70,16 @@ def dynamic_fertility_stress_step(
 
     half_flowering = jnp.asarray(
         round_fortran(jnp.asarray(flowering_length, F64) / 2.0), jnp.int32)
+    flowering_start = (jnp.asarray(delayed_days, jnp.int32) +
+                       jnp.asarray(crop_day1, jnp.int32) +
+                       jnp.asarray(flowering_day, jnp.int32))
+    # Native tmax1 stays undef_int (-9) until the yield block executes,
+    # strictly after flowering starts. Its later guard also uses that sentinel.
+    tmax1 = jnp.where(jnp.asarray(dayi, jnp.int32) > flowering_start,
+                     half_flowering, -9)
     post_vegetative = (jnp.asarray(grain_crop, jnp.bool_) &
         jnp.asarray(determinacy_linked, jnp.bool_) &
-        (jnp.asarray(dayi, jnp.int32) >
-         (jnp.asarray(delayed_days, jnp.int32) +
-          jnp.asarray(crop_day1, jnp.int32) +
-          jnp.asarray(flowering_day, jnp.int32) + half_flowering)))
+        (jnp.asarray(dayi, jnp.int32) > flowering_start + tmax1))
     monotonic = active & post_vegetative
     stress = jnp.where(monotonic, jnp.maximum(stress, previous), stress)
     stress = jnp.where(monotonic, jnp.minimum(stress, management), stress)
