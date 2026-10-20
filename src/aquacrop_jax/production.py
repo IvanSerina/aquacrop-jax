@@ -24,6 +24,12 @@ class ProductionTrajectory(NamedTuple):
     biomass_increment: jax.Array
 
 
+class FertilityProductionTrajectory(NamedTuple):
+    production: ProductionTrajectory
+    sum_kci: jax.Array
+    final_sum_kci: jax.Array
+
+
 class FertilityStressUpdate(NamedTuple):
     """Daily fertility stress and next-step state from DetermineBiomassAndYield."""
     stress_pct: jax.Array
@@ -261,24 +267,48 @@ def run_production_trajectory(
         yield_formation_wp_pct=100.0, fertility_wp_reduction_pct=0.0,
         potential_biomass_fraction=1.0, reproductive_crop=True,
         grain_crop=True, initial_biomass=0.0,
-        initial_unlimited_biomass=0.0, initial_yield=0.0):
+        initial_unlimited_biomass=0.0, initial_yield=0.0, *,
+        sum_kc_top_stress=None, initial_sum_kci=0.0):
+    """Accumulate diagnostic production, optionally using native fertility WP.
+
+    Supplying ``sum_kc_top_stress`` enables the native cumulative WP
+    recurrence and returns ``FertilityProductionTrajectory`` with restart
+    state. The seasonal Kc threshold and WP reduction may be scalar or daily
+    arrays. Without the threshold, the existing constant-reduction diagnostic
+    API is preserved. Dynamic fertility stress must be updated by the caller;
+    weeds, assimilate transfers and stressed HI remain outside this trajectory.
+    """
     tact = jnp.asarray(actual_transpiration, F64)
     tpot = jnp.asarray(potential_transpiration, F64)
     eto = jnp.asarray(eto, F64)
     co2 = jnp.asarray(co2_ppm, F64)
     days = jnp.asarray(day_after_planting, F64)
-    reduction = 1.0 - jnp.asarray(fertility_wp_reduction_pct, F64) / 100.0
+    reduction = jnp.broadcast_to(jnp.asarray(fertility_wp_reduction_pct, F64), eto.shape)
+    native_fertility = sum_kc_top_stress is not None
+    top = jnp.broadcast_to(jnp.asarray(
+        sum_kc_top_stress if native_fertility else 0.0, F64), eto.shape)
     potential_fraction = jnp.asarray(potential_biomass_fraction, F64)
     reproductive = jnp.asarray(reproductive_crop, jnp.bool_)
 
     def body(carry, forcing):
-        biomass, unlimited, yield_mass = carry
-        actual, potential_t, eto_day, co2_day, day = forcing
+        biomass, unlimited, yield_mass, sum_kci = carry
+        actual, potential_t, eto_day, co2_day, day, reduction_day, top_day = forcing
         wp = daily_water_productivity(
             base_water_productivity_g_m2, co2_day, sink_strength_pct,
             day, flowering_day, maximum_hi_pct, daily_hi_rate_pct,
             yield_formation_wp_pct, reproductive_crop)
-        increment = jnp.where(eto_day > 0.0, wp * reduction * actual / eto_day, 0.0)
+        if native_fertility:
+            wp = jnp.where(eto_day > 0.0, wp,
+                           jnp.asarray(base_water_productivity_g_m2, F64) / 100.0)
+            adjusted = fertility_water_productivity_step(
+                wp, sum_kci, top_day, reduction_day, actual, eto_day)
+            increment = adjusted.biomass_increment
+            next_sum_kci = adjusted.sum_kci
+            actual_wp = adjusted.water_productivity
+        else:
+            increment = jnp.where(eto_day > 0.0,
+                wp * (1.0 - reduction_day / 100.0) * actual / eto_day, 0.0)
+            next_sum_kci, actual_wp = sum_kci, wp
         potential_increment = jnp.where(eto_day > 0.0, wp * potential_t / eto_day, 0.0)
         biomass += increment
         unlimited += potential_increment
@@ -288,13 +318,19 @@ def run_production_trajectory(
         yield_mass = jnp.where(reproductive, biomass * harvest_index / 100.0,
                                yield_mass + increment * harvest_index / 100.0)
         output = (biomass, unlimited, potential_biomass, harvest_index,
-                  yield_mass, wp, increment)
-        return (biomass, unlimited, yield_mass), output
+                  yield_mass, actual_wp, increment)
+        if native_fertility:
+            output = (output, next_sum_kci)
+        return (biomass, unlimited, yield_mass, next_sum_kci), output
 
-    _, output = lax.scan(
+    final, output = lax.scan(
         body,
         (jnp.asarray(initial_biomass, F64),
          jnp.asarray(initial_unlimited_biomass, F64),
-         jnp.asarray(initial_yield, F64)),
-        (tact, tpot, eto, co2, days))
+         jnp.asarray(initial_yield, F64), jnp.asarray(initial_sum_kci, F64)),
+        (tact, tpot, eto, co2, days, reduction, top))
+    if native_fertility:
+        production, cumulative = output
+        return FertilityProductionTrajectory(
+            ProductionTrajectory(*production), cumulative, final[3])
     return ProductionTrajectory(*output)

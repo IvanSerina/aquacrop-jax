@@ -10,7 +10,8 @@ from jax import lax
 import numpy as np
 import pytest
 
-from aquacrop_jax.production import fertility_water_productivity_step
+from aquacrop_jax.production import (FertilityProductionTrajectory,
+    fertility_water_productivity_step, run_production_trajectory)
 
 ROOT = Path(__file__).resolve().parents[1]
 # cumulative Kc, stressed seasonal Kc, RedWP, actual Tr, ETo
@@ -99,3 +100,54 @@ def test_wp_preserves_zero_eto_and_unreduced_accumulation_without_native():
     unmodified = fertility_water_productivity_step(.2, 11., 10., 0., 3., 5.)
     np.testing.assert_array_equal(unmodified[:2], [.2, 11.6])
     np.testing.assert_allclose(unmodified.biomass_increment, .12, rtol=0., atol=1e-14)
+
+
+def trajectory(tact, eto, reduction, top, initial_biomass=.5,
+               initial_unlimited=0., initial_yield=0., initial_sum=0.):
+    return run_production_trajectory(tact, tact, eto,
+        jnp.full_like(eto, 369.41), jnp.arange(eto.size, dtype=jnp.float64),
+        15., 100., 100., 50., 100., fertility_wp_reduction_pct=reduction,
+        reproductive_crop=False, grain_crop=False, initial_biomass=initial_biomass,
+        initial_unlimited_biomass=initial_unlimited, initial_yield=initial_yield,
+        sum_kc_top_stress=top, initial_sum_kci=initial_sum)
+
+
+def test_native_wp_is_used_in_production_and_resumes(native_probe):
+    tact = jnp.asarray([3., 3., 3., 0., 2., 3., 1.])
+    eto = jnp.asarray([5., 5., 5., 0., 5., 5., 5.])
+    reduction = jnp.asarray([50., 50., 50., 50., 50., 0., 50.])
+    top = jnp.asarray([1., 1., 1., 2., 2., 2., 2.])
+    cumulative, expected = 0., []
+    for seasonal, red, tr, et in zip(top, reduction, tact, eto):
+        row = native_values(native_probe, [[cumulative, float(seasonal), float(red),
+                                           float(tr), float(et)]])[0]
+        cumulative = row[1]
+        expected.append(row)
+    expected = np.asarray(expected)
+    for operation in (trajectory, jax.jit(trajectory)):
+        result = operation(tact, eto, reduction, top)
+        assert isinstance(result, FertilityProductionTrajectory)
+        np.testing.assert_allclose(result.production.water_productivity,
+                                   expected[:, 0], rtol=0., atol=1e-14)
+        np.testing.assert_allclose(result.sum_kci, expected[:, 1], rtol=0., atol=1e-14)
+        np.testing.assert_allclose(result.production.biomass_increment,
+                                   expected[:, 2], rtol=0., atol=1e-14)
+        np.testing.assert_allclose(result.production.biomass,
+                                   .5 + np.cumsum(expected[:, 2]), rtol=0., atol=1e-14)
+    compiled = jax.jit(trajectory)
+    first = compiled(tact[:2], eto[:2], reduction[:2], top[:2])
+    second = compiled(tact[2:], eto[2:], reduction[2:], top[2:],
+        first.production.biomass[-1], first.production.unlimited_biomass[-1],
+        first.production.yield_mass[-1], first.final_sum_kci)
+    np.testing.assert_allclose(second.production.biomass, result.production.biomass[2:],
+                               rtol=0., atol=1e-14)
+    np.testing.assert_array_equal(second.sum_kci, result.sum_kci[2:])
+
+
+def test_native_production_zero_eto_keeps_parameter_wp_before_co2_adjustment():
+    result = run_production_trajectory([2.], [2.], [0.], [550.], [10.],
+        15., 100., 0., 100., 100., fertility_wp_reduction_pct=50.,
+        sum_kc_top_stress=10., initial_sum_kci=2.)
+    np.testing.assert_array_equal(result.production.water_productivity, [.15])
+    np.testing.assert_array_equal(result.production.biomass_increment, [0.])
+    np.testing.assert_array_equal(result.sum_kci, [2.])
