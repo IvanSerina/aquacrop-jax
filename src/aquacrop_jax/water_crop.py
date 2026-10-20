@@ -54,6 +54,12 @@ class WaterCropTrajectory(NamedTuple):
     salinity_stomatal_reduction_pct: jax.Array
 
 
+class WaterCropFeedbackTrajectory(NamedTuple):
+    """Water trajectory plus diagnostics produced by an in-scan crop step."""
+    water: WaterCropTrajectory
+    feedback: object
+
+
 class WaterCropPreET(NamedTuple):
     """Daily state after infiltration, capillary rise and salt transport."""
 
@@ -249,19 +255,34 @@ def run_water_crop_trajectory(
         salinity_minimum_ece=2.0, salinity_maximum_ece=16.0,
         salinity_response_pct=100.0, salt_stomatal_coefficients=None,
         potential_evaporation=None, salinity_growing_mask=None,
-        initial_salinity_growing_days=0.0, initial_mean_salinity_stress_pct=0.0):
-    """Run explicit daily water/salt state with optional calibrated salt stress.
+        initial_salinity_growing_days=0.0, initial_mean_salinity_stress_pct=0.0,
+        daily_feedback_step=None, initial_feedback_state=None,
+        feedback_forcing=None):
+    """Run explicit daily water/salt state with optional canopy feedback.
 
     ``potential_evaporation`` enables canopy-shaded demand. Salt stores and
     growing-day stress averages can be resumed using the returned histories.
     Primary ECe and additional ECsw stomatal responses require the reference
-    calibration polynomial; no coefficients are inferred here.
+    calibration polynomial; no coefficients are inferred here. When
+    ``daily_feedback_step`` is supplied, it runs after pre-ET water/salt and
+    returns ``(next_state, Tpot, Epot, diagnostics)`` for that same day. Pass
+    its per-day inputs in ``feedback_forcing``; the result then contains both
+    the water trajectory and the scanned diagnostics. Potential transpiration
+    may be ``None`` in this mode because feedback supplies it.
     """
     initial_theta = jnp.asarray(initial_theta, F64)
     rain = jnp.asarray(rain, F64)
     eto = jnp.asarray(eto, F64)
     rooting_depth = jnp.asarray(rooting_depth, F64)
-    potential_transpiration = jnp.asarray(potential_transpiration, F64)
+    feedback_enabled = daily_feedback_step is not None
+    if feedback_enabled and initial_feedback_state is None:
+        raise ValueError("daily feedback requires an explicit initial state")
+    if not feedback_enabled and (initial_feedback_state is not None or feedback_forcing is not None):
+        raise ValueError("feedback state/forcing require daily_feedback_step")
+    if potential_transpiration is None and not feedback_enabled:
+        raise ValueError("potential_transpiration is required without daily feedback")
+    potential_transpiration = (jnp.zeros_like(rain) if potential_transpiration is None
+                               else jnp.asarray(potential_transpiration, F64))
     adjusted_fc = jnp.asarray(adjusted_fc, F64)
     irrigation = (jnp.zeros_like(rain) if daily_irrigation is None else
                   jnp.asarray(daily_irrigation, F64))
@@ -307,8 +328,18 @@ def run_water_crop_trajectory(
         field_capacity_pct, rew_mm, initial_depth)
     supplied = jnp.asarray(initial_stage2_start_pct, F64)
     initial_start = jnp.where(supplied < 0.0, calculated, supplied)
+    initial_state = (initial_theta, jnp.asarray(initial_surface_water_mm, F64),
+                     initial_depth, initial_start, salt_initial,
+                     jnp.asarray(initial_salinity_growing_days, F64),
+                     jnp.asarray(initial_mean_salinity_stress_pct, F64))
 
-    def body(carry, forcing):
+    if feedback_enabled and feedback_forcing is not None:
+        for value in jax.tree_util.tree_leaves(feedback_forcing):
+            value = jnp.asarray(value)
+            if value.ndim == 0 or value.shape[0] != rain.shape[0]:
+                raise ValueError("each feedback forcing must have daily leading dimension")
+
+    def pre_et_step(carry, forcing):
         (current_theta, surface_store, evaporation_depth, stage2_start, salt,
          salt_growing_days, mean_salt_stress) = carry
         (rain_day, eto_day, root_day, tpot_day, irrigation_day,
@@ -324,6 +355,15 @@ def run_water_crop_trajectory(
             capillary_enabled=capillary_enabled, cap_a=cap_a, cap_b=cap_b,
             salt_enabled=salt_enabled, geometry=geometry,
             salt_solubility=salt_solubility)
+        return pre_et, (surface_store, evaporation_depth, stage2_start,
+                        salt_growing_days, mean_salt_stress, rain_day, root_day,
+                        tpot_day, irrigation_day, groundwater_day, epot_day,
+                        growing_day)
+
+    def finish_day(pre_et, post_inputs, tpot_day, epot_day):
+        (surface_store, evaporation_depth, stage2_start, salt_growing_days,
+         mean_salt_stress, rain_day, root_day, _, irrigation_day,
+         groundwater_day, _, growing_day) = post_inputs
         return water_crop_post_et_step(
             pre_et, surface_store, evaporation_depth, stage2_start,
             salt_growing_days, mean_salt_stress, rain_day, root_day, tpot_day,
@@ -344,12 +384,34 @@ def run_water_crop_trajectory(
             salt_solubility=salt_solubility, salt_enabled=salt_enabled,
             geometry=geometry)
 
+    def body(carry, forcing):
+        pre_et, post_inputs = pre_et_step(carry, forcing)
+        _, _, _, _, _, _, _, tpot_day, _, _, epot_day, _ = post_inputs
+        return finish_day(pre_et, post_inputs, tpot_day, epot_day)
+
+    base_forcing = (rain, eto, rooting_depth, potential_transpiration, irrigation,
+                    groundwater, irri_ec, gw_ec, epot, growing)
+    if feedback_enabled:
+        extra_forcing = () if feedback_forcing is None else feedback_forcing
+
+        def feedback_body(carry, forcing):
+            water_carry, feedback_state = carry
+            base, extra = forcing
+            pre_et, post_inputs = pre_et_step(water_carry, base)
+            (feedback_state, tpot_day, epot_day,
+             feedback_output) = daily_feedback_step(feedback_state, pre_et, extra)
+            water_carry, water_output = finish_day(
+                pre_et, post_inputs, tpot_day, epot_day)
+            return ((water_carry, feedback_state),
+                    (water_output, feedback_output))
+
+        _, (water_output, feedback_output) = lax.scan(
+            feedback_body, (initial_state, initial_feedback_state),
+            (base_forcing, extra_forcing))
+        return WaterCropFeedbackTrajectory(
+            WaterCropTrajectory(*water_output), feedback_output)
+
     _, output = lax.scan(
         body,
-        (initial_theta, jnp.asarray(initial_surface_water_mm, F64),
-         initial_depth, initial_start, salt_initial,
-         jnp.asarray(initial_salinity_growing_days, F64),
-         jnp.asarray(initial_mean_salinity_stress_pct, F64)),
-        (rain, eto, rooting_depth, potential_transpiration, irrigation,
-         groundwater, irri_ec, gw_ec, epot, growing))
+        initial_state, base_forcing)
     return WaterCropTrajectory(*output)

@@ -32,6 +32,33 @@ def test_zero_root_depth_disables_transpiration():
     assert np.asarray(result.transpiration) == pytest.approx([0.0])
 
 
+def test_daily_feedback_computes_et_demand_after_pre_et_water_state():
+    theta = jnp.asarray([.14, .16, .16], jnp.float64)
+    eto = jnp.asarray([4., 4.], jnp.float64)
+
+    def feedback(state, pre_et, forcing):
+        eto_day, = forcing
+        water_before_et = jnp.mean(pre_et.theta)
+        tpot = eto_day * water_before_et
+        epot = eto_day * (1.0 - water_before_et)
+        return state + 1, tpot, epot, (water_before_et, tpot, epot)
+
+    result = jax.jit(lambda: run_water_crop_trajectory(
+        theta, [40., 0.], eto, [.2, .2], None,
+        [.1, .1, .1], [0., 0., 0.], [.29, .29, .29],
+        46., 29., 13., 1., 1200., 46, 7., .6, .02, .01,
+        stomatal_shape=3., daily_feedback_step=feedback,
+        initial_ece=1., irrigation_ec=[0., 0.], groundwater_ec=[0., 0.],
+        initial_feedback_state=jnp.int32(0), feedback_forcing=(eto,)))()
+    assert result.feedback[0].shape == (2,)
+    assert np.asarray(result.feedback[0])[0] > np.asarray(result.feedback[0])[1]
+    np.testing.assert_allclose(result.feedback[1], eto * result.feedback[0])
+    np.testing.assert_allclose(result.feedback[2], eto * (1. - result.feedback[0]))
+    np.testing.assert_allclose(result.water.residual, 0., rtol=0., atol=1e-9)
+    np.testing.assert_allclose(result.water.salt_residual, 0., rtol=0., atol=1e-9)
+    assert np.all(np.asarray(result.water.transpiration) > 0.)
+
+
 def test_daily_irrigation_enters_profile_and_balance():
     result = run_water_crop_trajectory(
         [0.20, 0.20, 0.20], [0.0], [0.0], [0.0], [0.0],
