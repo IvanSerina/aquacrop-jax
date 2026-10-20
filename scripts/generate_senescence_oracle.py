@@ -80,6 +80,14 @@ def cases():
     add("log-guard", parameters=dict(delay_eto_mm=0),
         canopy=[.105, .05, .105, 0], state=[10., .1, .105, 0., 1, 0])
     add("no-more-crop-sticky", state=[0., 0., .1, 0., 0, 1], forcing=[day(90.)])
+    # Water-driven senescence is also reached after the canopy has stopped
+    # expanding. Exercise DetermineCCiGDD's mid-season branch with the
+    # persistent full-canopy state supplied at its boundary.
+    add("midseason-water-senescence", canopy=[.95, .05, .95, 0],
+        state=[0., 0., .95, 0., 0, 0], forcing=[
+            day(36., 700.), day(36., 710.), day(90., 720.),
+            day(36., 730.), day(36., 740.)])
+    result[-1]["phase"] = "midseason"
     return result
 
 

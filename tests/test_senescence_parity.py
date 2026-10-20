@@ -13,7 +13,7 @@ import pytest
 
 from aquacrop_jax.canopy import (EarlyVegetativeCanopyState, WaterSenescenceState,
     early_vegetative_gdd_step, early_water_senescence_gdd_step,
-    leaf_thresholds_for_eto, senescence_threshold_for_eto)
+    leaf_thresholds_for_eto, potential_canopy_gdd, senescence_threshold_for_eto)
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = json.loads((ROOT / "tests/fixtures/senescence_fortran73.json").read_text())
@@ -62,6 +62,8 @@ compiled_trajectory = jax.jit(trajectory)
 
 @pytest.mark.parametrize("case", CASES, ids=lambda c: c["name"])
 def test_early_senescence_matches_native_eager_and_jit_scan(case):
+    if case.get("phase") == "midseason":
+        pytest.skip("mid-season fixture is exercised through its persistent canopy state")
     initial = initial_state(case)
     p = {key: jnp.asarray(value, jnp.bool_ if key == "fao_correction" else jnp.float64)
          for key, value in case["parameters"].items()}
@@ -91,6 +93,55 @@ def test_early_senescence_matches_native_eager_and_jit_scan(case):
                                       expected[:, [3, 4, 7, 8, 9]])
         np.testing.assert_allclose(actual[:, [10, 11]], expected[:, [10, 11]],
                                    rtol=0., atol=1e-12)
+        np.testing.assert_allclose(actual[:, 12], expected[:, 12], rtol=0., atol=1e-15)
+
+
+def test_midseason_water_senescence_matches_native_eager_and_jit_scan():
+    case = next(case for case in CASES if case["name"] == "midseason-water-senescence")
+    canopy, state = initial_state(case)
+    p = {key: jnp.asarray(value, jnp.bool_ if key == "fao_correction" else jnp.float64)
+         for key, value in case["parameters"].items()}
+    forcing = jnp.asarray(case["forcing"], jnp.float64)
+
+    def step(carry, row):
+        previous_canopy, senescence = carry
+        total, daily, eto, actual, fc, wp, top_actual, top_fc, top_wp, topsoil = row
+        actual = jnp.where(topsoil != 0., top_actual, actual)
+        fc = jnp.where(topsoil != 0., top_fc, fc)
+        wp = jnp.where(topsoil != 0., top_wp, wp)
+        baseline_cover = potential_canopy_gdd(total, 5., 1920., 2200.,
+                                               .05, .95, .012, .006)
+        todays_canopy = previous_canopy._replace(
+            cover=baseline_cover, maximum_adjusted=baseline_cover)
+        next_canopy, next_senescence, stress, valid = early_water_senescence_gdd_step(
+            senescence, todays_canopy, previous_canopy.cover,
+            total, daily, 5., 1920., 1920., .05, .05, .95, baseline_cover,
+            p["decline"], actual, fc, wp, eto, p["p_senescence"],
+            p["senescence_shape"], p["delay_eto_mm"], canopy_valid=True,
+            fao_correction=bool(case["parameters"]["fao_correction"]),
+            adjustment_factor=p["adjustment_factor"], beta_pct=p["beta_pct"])
+        row_out = jnp.stack((*next_canopy, *next_senescence, -33., stress,
+                             senescence_threshold_for_eto(
+                                 eto, p["p_senescence"], senescence.time_gdd,
+                                 bool(case["parameters"]["fao_correction"]),
+                                 p["adjustment_factor"], p["beta_pct"])))
+        return (next_canopy, next_senescence), (row_out, valid)
+
+    eager_rows, eager_valid = [], []
+    carry = (canopy, state)
+    for row in forcing:
+        carry, (values, valid) = step(carry, row)
+        eager_rows.append(values)
+        eager_valid.append(valid)
+    _, (compiled_rows, compiled_valid) = jax.jit(
+        lambda c, s, x: lax.scan(step, (c, s), x))(canopy, state, forcing)
+    expected = np.asarray(case["expected"], dtype=float)
+    for actual, valid in ((jnp.stack(eager_rows), jnp.stack(eager_valid)),
+                          (compiled_rows, compiled_valid)):
+        np.testing.assert_array_equal(valid, True)
+        np.testing.assert_allclose(actual[:, :7], expected[:, :7], rtol=0., atol=1e-14)
+        np.testing.assert_array_equal(actual[:, 7:10], expected[:, 7:10])
+        np.testing.assert_allclose(actual[:, 10:12], expected[:, 10:12], rtol=0., atol=1e-12)
         np.testing.assert_allclose(actual[:, 12], expected[:, 12], rtol=0., atol=1e-15)
 
 
