@@ -3,13 +3,14 @@
 program growing_degree_days_probe
     use ac_kinds, only: dp, int8, int32
     use ac_global
-    use ac_tempprocessing, only: GrowingDegreeDays, TminRecord => Tmin, &
+    use ac_tempprocessing, only: GrowingDegreeDays, SumCalendarDays, TminRecord => Tmin, &
         ReadTemperatureFilefull, TemperatureFilefull_exists
     implicit none
     integer(int32) :: count, row, period, offset, value, undefined
     type(rep_clim) :: record
     character(len=256) :: description
     character(len=32) :: mode
+    character(len=32) :: operation
     call InitializeGlobalStrings()
     call SetTemperatureFile('Ottawa.Tnx')
     call SetTemperatureFilefull('DATA/Ottawa.Tnx')
@@ -24,6 +25,7 @@ program growing_degree_days_probe
     call SetCrop_Tbase(5._dp)
     call SetCrop_Tupper(30._dp)
     call get_command_argument(1, mode)
+    call get_command_argument(2, operation)
     if (trim(mode) == '--base-zero') call SetCrop_Tbase(0._dp)
     undefined = 0
     if (FullUndefinedRecord(GetTemperatureRecord_FromY(), GetTemperatureRecord_FromD(), &
@@ -35,8 +37,13 @@ program growing_degree_days_probe
     read(*,*) count
     do row = 1,count
         read(*,*) period,offset
-        value = GrowingDegreeDays(period, GetTemperatureRecord_FromDayNr()+offset, &
-            GetCrop_Tbase(), GetCrop_Tupper(), GetSimulParam_Tmin(), GetSimulParam_Tmax())
+        if (trim(operation) == '--calendar-days') then
+            value = SumCalendarDays(period, GetTemperatureRecord_FromDayNr()+offset, &
+                GetCrop_Tbase(), GetCrop_Tupper(), GetSimulParam_Tmin(), GetSimulParam_Tmax())
+        else
+            value = GrowingDegreeDays(period, GetTemperatureRecord_FromDayNr()+offset, &
+                GetCrop_Tbase(), GetCrop_Tupper(), GetSimulParam_Tmin(), GetSimulParam_Tmax())
+        end if
         write(*,'(3(i0,1x))') period,offset,value
     end do
 end program growing_degree_days_probe

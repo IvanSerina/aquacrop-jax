@@ -13,6 +13,50 @@ class GrowingDegreeDaysResult(NamedTuple):
     valid: jax.Array
 
 
+def calendar_days_from_record(daily_gdd, target_gdd, first_offset=0, *,
+                              undefined_year=False):
+    """Daily-file SumCalendarDays, with the native strict EOF/cycling rules.
+
+    Target is a native integer GDD threshold; subtract each day's heat in
+    order. Offset is already normalized to the undefined reference year.
+    Nonpositive targets return zero even without record coverage. A positive
+    target with missing/exhausted coverage returns -9. Undefined records with
+    no positive heat in their cycle are rejected instead of looping forever.
+    Constant/external and aggregated temperature records are outside scope.
+    """
+    values = jnp.asarray(daily_gdd, jnp.float64)
+    target, offset = [jnp.asarray(v, jnp.int32) for v in (target_gdd, first_offset)]
+    count = values.shape[0]
+    if count < 2:
+        return GrowingDegreeDaysResult(jnp.where(target <= 0, 0, -9).astype(jnp.int32), target <= 0)
+    annual = jnp.asarray(undefined_year, jnp.bool_)
+    covered = (offset >= 0) & (offset < count - 1)
+    terminating = ~annual | jnp.any(values[:-1] > 0.)
+
+    def accumulate(_):
+        initial = (offset, offset + 1, jnp.int32(1), target.astype(jnp.float64) - values[offset])
+
+        def condition(state):
+            _, day, _, remaining = state
+            # vmap evaluates both cond branches. Keep invalid annual offsets
+            # out of this loop even when the outer cond is batched.
+            return covered & terminating & (remaining > 0.) & ((day < count - 1) | annual)
+
+        def step(state):
+            index, day, elapsed, remaining = state
+            index = jnp.where(index + 1 == count - 1, 0, index + 1)
+            return index, day + 1, elapsed + 1, remaining - values[index]
+
+        _, _, elapsed, remaining = lax.while_loop(condition, step, initial)
+        reached = remaining <= 0.
+        return GrowingDegreeDaysResult(jnp.where(reached, elapsed, -9), reached)
+
+    def bypass(_):
+        return GrowingDegreeDaysResult(jnp.where(target <= 0, 0, -9).astype(jnp.int32), target <= 0)
+
+    return lax.cond((target > 0) & covered & terminating, accumulate, bypass, None)
+
+
 def growing_degree_days_from_record(daily_gdd, period_days, first_offset=0, *,
                                     undefined_year=False):
     """Daily-file branch of tempprocessing.f90::GrowingDegreeDays.
