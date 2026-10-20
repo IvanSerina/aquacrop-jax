@@ -16,8 +16,7 @@ def generate(output):
                      if p.name != "aquacrop.o")
     if not shutil.which("gfortran") or not objects:
         raise RuntimeError("gfortran and prebuilt native reference objects required")
-    cases = [dict(stress=stress, calibrated=True) for stress in
-             (-1, 0, 1, 10, 20, 30, 40, 50, 60, 70, 80, 84, 85, 90, 99, 100)]
+    cases = [dict(stress=stress, calibrated=True) for stress in range(-1, 101)]
     cases.extend(dict(stress=stress, calibrated=False) for stress in (0, 50, 100))
     with tempfile.TemporaryDirectory(prefix="fertility-setup-") as directory:
         temporary = Path(directory)
@@ -37,7 +36,9 @@ def generate(output):
     assert lines[0].startswith("setup ") and lines[1].startswith("timing ")
     setup = list(map(float, lines[0].split()[1:]))
     timing = list(map(float, lines[1].split()[1:]))
-    for case, line in zip(cases, lines[2:], strict=True):
+    assert lines[2].startswith("samples ")
+    samples = list(map(float, lines[2].split()[1:]))
+    for case, line in zip(cases, lines[3:], strict=True):
         stress, *values = map(float, line.split())
         assert stress == case["stress"]
         case["coefficients"] = values[:3]
@@ -59,7 +60,8 @@ def generate(output):
         timing_fields=["initial_cover", "growth_coefficient", "maximum_cover", "emergence_day",
                        "full_canopy_day", "senescence_day", "flowering_day", "flowering_length",
                        "determinant_crop"],
-        timing_inputs=timing, cases=cases)
+        timing_inputs=timing, biomass_percentages=samples[3:],
+        fitted_coefficients=samples[:3], cases=cases)
     output.write_text(json.dumps(data, indent=2) + "\n")
     print(f"{output}: {len(cases)} native cases")
 

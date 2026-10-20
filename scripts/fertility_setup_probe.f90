@@ -11,10 +11,26 @@ program fertility_setup_probe
         GetCrop_CGC, GetCrop_CCx, GetCrop_DaysToGermination, &
         GetCrop_DaysToFullCanopy, GetCrop_DaysToSenescence, &
         GetCrop_DaysToFlowering, GetCrop_LengthFlowering, GetCrop_DeterminancyLinked
+    use ac_global, only: GetCrop_DaysToCCini, GetCrop_GDDaysToCCini, GetCrop_DaysToGermination, &
+        GetCrop_DaysToFullCanopy, GetCrop_DaysToSenescence, GetCrop_DaysToHarvest, &
+        GetCrop_DaysToFlowering, GetCrop_LengthFlowering, GetCrop_GDDaysToGermination, &
+        GetCrop_GDDaysToFullCanopy, GetCrop_GDDaysToSenescence, GetCrop_GDDaysToHarvest, &
+        GetCrop_WPy, GetCrop_HI, GetCrop_CCo, &
+        GetCrop_CCx, GetCrop_CGC, GetCrop_GDDCGC, &
+        GetCrop_CDC, GetCrop_GDDCDC, GetCrop_KcTop, &
+        GetCrop_KcDeclineCumul, GetCrop_CCEffectEvapLate, GetCrop_Tbase, &
+        GetCrop_Tupper, GetSimulParam_Tmin, GetSimulParam_Tmax, &
+        GetCrop_GDtranspLow, GetCrop_WP, GetCrop_dHIdt, &
+        GetCrop_Day1, GetCrop_DeterminancyLinked, GetCrop_StressResponse, &
+        GetCrop_subkind, GetCrop_ModeCycle, GetCrop_GDDaysToFlowering, &
+        GetCrop_GDDLengthFlowering, GetCrop_GDDaysToHIo, GetCrop_Planting, &
+        GetCrop_DaysToHIo
+    use ac_preparefertilitysalinity, only: ReferenceStressBiomassRelationship
     use ac_startunit, only: InitializeTheProgram, InitializeProject
     use ac_run, only: InitializeRunPart1, RelationshipsForFertilityAndSaltStress, &
         GetCoeffb0, GetCoeffb1, GetCoeffb2, GetFracBiomassPotSF
     implicit none
+    real(dp) :: b0, b1, b2, samples(7)
     integer(int32) :: count, index, stress, calibrated
 
     call InitializeGlobalStrings()
@@ -34,6 +50,39 @@ program fertility_setup_probe
         GetCrop_DaysToFullCanopy(), GetCrop_DaysToSenescence(), &
         GetCrop_DaysToFlowering(), GetCrop_LengthFlowering(), &
         merge(1, 0, GetCrop_DeterminancyLinked())
+    b0 = 0._dp
+    b1 = 0._dp
+    b2 = 0._dp
+    samples = 0._dp
+        call ReferenceStressBiomassRelationship(GetCrop_DaysToCCini(), &
+                                  GetCrop_GDDaysToCCini(), &
+                                  GetCrop_DaysToGermination(), &
+                                  GetCrop_DaysToFullCanopy(), &
+                                  GetCrop_DaysToSenescence(), &
+                                  GetCrop_DaysToHarvest(), &
+                                  GetCrop_DaysToFlowering(), &
+                                  GetCrop_LengthFlowering(), &
+                                  GetCrop_GDDaysToGermination(), &
+                                  GetCrop_GDDaysToFullCanopy(), &
+                                  GetCrop_GDDaysToSenescence(), &
+                                  GetCrop_GDDaysToHarvest(), &
+                                  GetCrop_WPy(), GetCrop_HI(), &
+                                  GetCrop_CCo(), GetCrop_CCx(), &
+                                  GetCrop_CGC(), GetCrop_GDDCGC(), &
+                                  GetCrop_CDC(), GetCrop_GDDCDC(), &
+                                  GetCrop_KcTop(), GetCrop_KcDeclineCumul(), &
+                                  real(GetCrop_CCEffectEvapLate(), kind= dp), &
+                                  GetCrop_Tbase(), &
+                                  GetCrop_Tupper(), GetSimulParam_Tmin(), &
+                                  GetSimulParam_Tmax(), GetCrop_GDtranspLow(), &
+                                  GetCrop_WP(), GetCrop_dHIdt(), &
+                                  GetCrop_Day1(), GetCrop_DeterminancyLinked(), &
+                                  GetCrop_StressResponse(),GetCrop_subkind(), &
+                                  GetCrop_ModeCycle(), b0, b1, &
+                                  b2, samples(1), samples(2), samples(3), samples(4), samples(5), samples(6), samples(7), &
+                                  GetCrop_GDDaysToFlowering(), GetCrop_GDDLengthFlowering(), &
+                                  GetCrop_GDDaysToHIo(), GetCrop_Planting(), GetCrop_DaysToHIo())
+    write(*, '(a,1x,11(es24.16,1x))') 'samples', b0, b1, b2, 100._dp, samples
     read(*, *) count
     do index = 1, count
         read(*, *) stress, calibrated

@@ -28,6 +28,47 @@ class FertilityCanopyTiming(NamedTuple):
     stress_class_pct: jax.Array
 
 
+class FertilityBiomassCoefficients(NamedTuple):
+    coefficient0: jax.Array
+    coefficient1: jax.Array
+    coefficient2: jax.Array
+
+
+def fit_fertility_biomass_response(biomass_percentages):
+    """Fit the eight native 0..70% fertility samples in source operation order.
+
+    Inputs are percentages relative to the no-stress normalized biomass,
+    starting at 100%. Sample generation belongs to Bnormalized/reference
+    climate setup. The native singular-fit sentinel is -9 for all coefficients.
+    """
+    biomass = jnp.asarray(biomass_percentages, F64)
+    if biomass.shape != (8,):
+        raise ValueError("Fertility calibration requires eight biomass percentages")
+    stress = jnp.arange(8, dtype=F64) * 10.
+    square = biomass * biomass
+
+    def accumulate(total, row):
+        return total + row, None
+
+    totals, _ = lax.scan(accumulate, jnp.zeros(3, F64),
+                        jnp.stack((stress, biomass, square), axis=1))
+    yavg, xavg, square_avg = totals / 8.
+    y, x1, x2 = stress - yavg, biomass - xavg, square - square_avg
+    products = jnp.stack((x1 * y, x2 * y, x1 * x1, x2 * x2, x1 * x2), axis=1)
+    sums, _ = lax.scan(accumulate, jnp.zeros(5, F64), products)
+    xy, x2y, xx, x2x2, cross = sums
+
+    def fitted(_):
+        b2 = (xy - (x2y * xx) / cross) / (cross - (xx * x2x2) / cross)
+        b1 = (xy - b2 * cross) / xx
+        b0 = yavg - b1 * xavg - b2 * square_avg
+        return FertilityBiomassCoefficients(b0, b1, b2)
+
+    return lax.cond(jnp.abs(round_fortran(cross * 1000.)) != 0.,
+        fitted, lambda _: FertilityBiomassCoefficients(*[jnp.asarray(-9., F64)] * 3),
+        None)
+
+
 def fertility_biomass_fraction(management_stress_pct, coefficient0,
                                coefficient1, coefficient2, *, calibrated=True):
     """Invert the fertility polynomial as in run.f90's setup recurrence.

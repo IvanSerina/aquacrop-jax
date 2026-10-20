@@ -14,6 +14,7 @@ import pytest
 
 from aquacrop_jax.climate import _slice, calendar_days_for_gdd
 from aquacrop_jax.fertility import (days_to_reach_cover, fertility_biomass_fraction,
+                                   fit_fertility_biomass_response,
                                    soil_fertility_effect, time_to_max_canopy_sf)
 from aquacrop_jax.kernels import degrees_day
 from aquacrop_jax.legacy import read_annotated_values, read_climate_series, read_project
@@ -40,6 +41,10 @@ def test_setup_fixture_matches_live_native_initialization(tmp_path):
     actual = json.loads(output.read_text())
     np.testing.assert_allclose(actual["setup"], FIXTURE["setup"], rtol=0., atol=1e-14)
     np.testing.assert_allclose(actual["timing_inputs"], FIXTURE["timing_inputs"],
+                               rtol=0., atol=1e-14)
+    np.testing.assert_allclose(actual["biomass_percentages"], FIXTURE["biomass_percentages"],
+                               rtol=0., atol=1e-14)
+    np.testing.assert_allclose(actual["fitted_coefficients"], FIXTURE["fitted_coefficients"],
                                rtol=0., atol=1e-14)
     for observed, expected in zip(actual["cases"], CASES, strict=True):
         assert (observed["stress"], observed["calibrated"]) == (expected["stress"], expected["calibrated"])
@@ -69,6 +74,35 @@ def test_biomass_fraction_matches_native_eager_jit_and_scan():
         assert np.all(np.isfinite(actual))
     assert expected[next(i for i, case in enumerate(CASES)
                          if case["stress"] == 100 and case["calibrated"])] < 0.
+
+
+def test_fit_native_samples_preserves_management_fraction_parity():
+    samples = jnp.asarray(FIXTURE["biomass_percentages"], jnp.float64)
+    expected = np.asarray(FIXTURE["fitted_coefficients"], np.float64)
+    stresses = jnp.asarray([case["stress"] for case in CASES])
+    calibrated = jnp.asarray([case["calibrated"] for case in CASES])
+    fractions = np.asarray([case["fraction"] for case in CASES])
+
+    def evaluate(samples):
+        coefficients = fit_fertility_biomass_response(samples)
+        fraction = jax.vmap(lambda stress, enabled: fertility_biomass_fraction(
+            stress, *coefficients, calibrated=enabled))(stresses, calibrated)
+        return coefficients, fraction
+
+    for coefficients, fraction in (evaluate(samples), jax.jit(evaluate)(samples)):
+        # Measured CPU float64 contraction: eager coefficient errors 1/1/0
+        # ULP and fused JIT 5/24/47 ULP. The actual inverse for every integer
+        # management level 0..100 still satisfies the unchanged 1e-14 bound.
+        np.testing.assert_array_max_ulp(np.asarray(coefficients), expected, maxulp=64)
+        np.testing.assert_allclose(fraction, fractions, rtol=0., atol=1e-14)
+        assert fraction.dtype == jnp.float64
+
+
+def test_fit_singular_response_and_static_sample_shape():
+    for evaluate in (fit_fertility_biomass_response, jax.jit(fit_fertility_biomass_response)):
+        np.testing.assert_array_equal(evaluate(jnp.full(8, 100.)), [-9., -9., -9.])
+        with pytest.raises(ValueError, match="eight biomass percentages"):
+            evaluate(jnp.ones(7))
 
 
 @pytest.mark.parametrize("coefficients,expected", [
