@@ -204,13 +204,11 @@ def prepare_seeded_forage_reference(project_file: Path, run):
     native_sp = temperature.astype(jnp.float32).astype(F64)
     calendar_gdd = degrees_day(base, upper, native_sp[:, 0], native_sp[:, 1], method)
     thermal = (emergence_gdd, full_gdd, sen_gdd, end_gdd)
-    flower = int(value("Calendar Days: from sowing to flowering"))
-    flower_length = int(value("Length of the flowering stage (days)"))
-    gflower = int(value("GDDays: from sowing to flowering"))
-    gflower_length = int(value("Length of the flowering stage (growing degree days)"))
-    determinacy = bool(value("Crop determinancy"))
-    calendar = gdd_reference_calendar(calendar_gdd, loaded_calendar + (flower, flower_length),
-        thermal + (gflower, gflower_length), growth, value("CDC for GGDays"), maximum,
+    # LoadCrop resets both flowering clocks for forage; only code 1 links
+    # determinancy (all other codes select false in the native select case).
+    determinacy = value("Crop determinancy") == 1
+    calendar = gdd_reference_calendar(calendar_gdd, loaded_calendar + (0, 0),
+        thermal + (0, 0), growth, value("CDC for GGDays"), maximum,
         value("Reference Harvest Index"), value("GDDays: building-up of Harvest Index"),
         forage_crop=True)
     if not bool(calendar.valid):

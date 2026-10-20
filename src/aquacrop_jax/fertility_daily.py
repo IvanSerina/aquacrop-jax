@@ -65,9 +65,8 @@ def prepare_seeded_forage_daily(project_file, run):
     growth = (float(thermal[1]) / float(calendar[1])) * reference.parameters.thermal_growth
     parameters = DailyFertilityParameters(calendar, thermal,
         reference.parameters.initial_cover, reference.parameters.maximum_cover, growth,
-        int(value('Calendar Days: from sowing to flowering')),
-        int(value('Length of the flowering stage (days)')),
-        bool(value('Crop determinancy')), reference.parameters.fertility_shapes)
+        # LoadCrop resets calendar and thermal flowering for forage crops.
+        0, 0, value('Crop determinancy') == 1, reference.parameters.fertility_shapes)
     series = read_climate_series(_reference(run, 'Temperature').resolve(project_file), 2)
     temperature = jnp.asarray(series.values, jnp.float64)
     daily = degrees_day(value('Base temperature'), value('Upper temperature'),
