@@ -51,6 +51,29 @@ class CanopyDayDiagnostics(NamedTuple):
     valid: jax.Array
 
 
+def canopy_gdd_step(state, cumulative_gdd, daily_gdd, calendar_day,
+        eto_mm, effective_water_mm, effective_fc_mm, effective_wp_mm,
+        parameters, effect):
+    """DetermineCCiGDD including its outer pre-emergence/post-harvest guard.
+
+    Outside the growing phase only today's cover becomes zero; adjusted
+    covers, protection, senescence memory and NoMoreCrop are preserved.
+    """
+    heat = jnp.asarray(cumulative_gdd, F64)
+    outside = ((heat <= parameters.thermal_days[0]) |
+               (round_fortran(heat) > parameters.thermal_days[3]))
+
+    def zero_cover(_):
+        next_state = state._replace(canopy=state.canopy._replace(cover=jnp.float64(0.)))
+        unset = jnp.float64(-9.)
+        return next_state, CanopyDayDiagnostics(unset, unset, unset, unset, jnp.bool_(True))
+
+    return lax.cond(outside, zero_cover,
+        lambda _: active_canopy_gdd_step(state, heat, daily_gdd, calendar_day,
+            eto_mm, effective_water_mm, effective_fc_mm, effective_wp_mm,
+            parameters, effect), None)
+
+
 def active_canopy_gdd_step(state, cumulative_gdd, daily_gdd, calendar_day,
         eto_mm, effective_water_mm, effective_fc_mm, effective_wp_mm,
         parameters, effect):
