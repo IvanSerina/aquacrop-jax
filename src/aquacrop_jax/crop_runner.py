@@ -16,7 +16,8 @@ from jax import lax, vmap
 import jax.numpy as jnp
 import numpy as np
 
-from .canopy import calculate_potential_et, potential_canopy_gdd
+from .canopy import (calculate_potential_et, potential_canopy_calendar,
+                     potential_canopy_gdd)
 from .climate import (_reference, _slice, calendar_days_for_gdd,
                       date_to_day_number, day_number_to_date)
 from .kernels import degrees_day
@@ -25,7 +26,7 @@ from .legacy_inputs import (co2_for_period, groundwater_forcing,
                             initial_conditions, manual_irrigation_forcing,
                             program_temperature_parameters)
 from .production import run_production_trajectory
-from .roots import actual_rooting_depth_gdd
+from .roots import actual_rooting_depth_calendar, actual_rooting_depth_gdd
 from .rounding import round_fortran
 from .salinity import SaltState
 from .soil import (discretize_profile, drainage_tau, read_soil_profile,
@@ -41,6 +42,25 @@ LIMITATIONS = [
     'Calibrated ECsw polynomial must be supplied explicitly to enable stomatal salt feedback.',
     'Only homogeneous soils and daily climate are supported; CSV is not legacy day.OUT.',
 ]
+
+
+def _crop_parameter(values: dict[str, float], prefix: str) -> float:
+    """Read a crop value, including descriptions renamed across CRO versions.
+
+    ``LoadCrop`` in the Fortran reference reads the record after WP as
+    ``Crop performance under elevated atmospheric CO2 concentration``.  Some
+    newer CRO descriptions call the same record ``Sink strength``; both are
+    the explicit value from the file, never a generated default.
+    """
+    if prefix == 'Sink strength':
+        for alias in (
+                'Sink strength',
+                'Crop performance under elevated atmospheric CO2 concentration'):
+            try:
+                return _parameter(values, alias)
+            except ValueError:
+                pass
+    return _parameter(values, prefix)
 
 
 @dataclass(frozen=True)
@@ -65,7 +85,7 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
         layer = soil.layers[0]
         crop = read_annotated_values(path('Crop'))
         crop_type = int(path('Crop').read_text().splitlines()[3].split(':', 1)[0])
-        value = lambda prefix: _parameter(crop, prefix)
+        value = lambda prefix: _crop_parameter(crop, prefix)
         zmin, zmax = value('Minimum effective rooting depth'), value('Maximum effective rooting depth')
         if crop_type == 4:
             # LoadSimulationRun calls AdjustYearPerennials before root expansion.
@@ -113,11 +133,16 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
 
         cycle = int(run.crop_last_day - run.crop_first_day + 1)
         mode = int(value('Determination of crop cycle'))
-        if mode != 0:
-            raise NotImplementedError('Calendar root development is not yet ported')
-        root = actual_rooting_depth_gdd(dap, cycle, value('GDDays: from sowing to emergence'),
-            value('GDDays: from sowing to maximum rooting depth'), cumulative,
-            zmin, zmax, value('Shape factor describing root zone expansion'))
+        if mode == 0:
+            root = actual_rooting_depth_gdd(dap, cycle,
+                value('GDDays: from sowing to emergence'),
+                value('GDDays: from sowing to maximum rooting depth'), cumulative,
+                zmin, zmax, value('Shape factor describing root zone expansion'))
+        else:
+            root = actual_rooting_depth_calendar(dap, cycle,
+                value('Calendar Days: from sowing to emergence'),
+                value('Calendar Days: from sowing to maximum rooting depth'),
+                zmin, zmax, value('Shape factor describing root zone expansion'))
         initial_cover = value('Soil surface covered by an individual seedling') * value('Number of plants per hectare') / 1e8
         maximum_cover = value('Maximum canopy cover')
         # AdjustCalendarCrop converts GDD milestones with the actual daily
@@ -142,9 +167,19 @@ def simulate_project(project: Project, project_file: Path, salt_stomatal_coeffic
         full_canopy_day = int(calendar_days_for_gdd(future_gdd, full_canopy_gdd))
         if emergence_day == -9 or full_canopy_day == -9:
             raise NotImplementedError('Temperature record ends before a GDD crop milestone')
-        canopy = potential_canopy_gdd(cumulative, value('GDDays: from sowing to emergence'),
-            value('GDDays: from sowing to start senescence'), value('GDDays: from sowing to maturity'),
-            initial_cover, maximum_cover, value('CGC for GGDays'), value('CDC for GGDays'))
+        if mode == 0:
+            canopy = potential_canopy_gdd(cumulative,
+                value('GDDays: from sowing to emergence'),
+                value('GDDays: from sowing to start senescence'),
+                value('GDDays: from sowing to maturity'), initial_cover,
+                maximum_cover, value('CGC for GGDays'), value('CDC for GGDays'))
+        else:
+            canopy = potential_canopy_calendar(dap,
+                value('Calendar Days: from sowing to emergence'),
+                value('Calendar Days: from sowing to start senescence'),
+                value('Calendar Days: from sowing to maturity'), initial_cover,
+                maximum_cover, value('Canopy growth coefficient'),
+                value('Canopy decline coefficient'))
         canopy = jnp.where(in_crop, canopy, 0.0)
         # BUDGET_module recomputes ET's calendar DAP from the rounded GDD
         # total.  This may differ from daynr - Crop.Day1 + 1 on cold days.

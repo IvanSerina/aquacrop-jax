@@ -92,6 +92,37 @@ def actual_rooting_depth_gdd(dap, cycle_days, emergence_gdd,
 
 
 @jax.jit
+def actual_rooting_depth_calendar(dap, cycle_days, emergence_days,
+                                  maximum_rooting_days, minimum_depth,
+                                  maximum_depth, shape_factor,
+                                  delayed_days=0, initial_root_percent=70.0):
+    """ActualRootingDepthDays from ``global.f90``.
+
+    ``dap`` is one-based at the end of the simulated day.  The initial
+    rooting depth is present from day one, while expansion is held at
+    ``Zmin * RootPercentZmin`` through half the emergence period and then
+    follows the same shaped time function used by the native routine.
+    """
+    virtual_day = jnp.asarray(dap, jnp.int32) - jnp.asarray(delayed_days, jnp.int32)
+    cycle, emergence, maximum_days = [jnp.asarray(v, jnp.int32) for v in
+                                      (cycle_days, emergence_days, maximum_rooting_days)]
+    zmin, zmax, shape = [jnp.asarray(v, F64) for v in
+                          (minimum_depth, maximum_depth, shape_factor)]
+    zini = zmin * jnp.asarray(initial_root_percent, F64) / 100.0
+    t0 = round_fortran(jnp.asarray(emergence, F64) / 2.0).astype(jnp.int32)
+    day = jnp.asarray(virtual_day, F64)
+    shaped = zini + (zmax - zini) * time_root_function(
+        day, shape, jnp.asarray(maximum_days, F64), jnp.asarray(t0, F64))
+    linear = zini + (zmax - zini) * day / jnp.asarray(maximum_days, F64)
+    developing = jnp.where(maximum_days <= t0, linear,
+                           jnp.where(virtual_day <= t0, zini, shaped))
+    depth = jnp.where(virtual_day >= maximum_days, zmax,
+                      jnp.where(zmin < zmax, jnp.maximum(developing, zmin), zmax))
+    active = (virtual_day >= 1) & (virtual_day <= cycle)
+    return jnp.where(active, depth, jnp.zeros_like(depth))
+
+
+@jax.jit
 def root_zone_water(theta, thickness, gravel_volume_pct, rooting_depth,
                     field_capacity_pct, wilting_point_pct, saturation_pct):
     theta = jnp.asarray(theta, F64)

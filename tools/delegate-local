@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/cpu-env.sh"
+tools_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+aquacrop_root="$(cd "$tools_dir/.." && pwd)"
+
+# Local, untracked settings (model and loopback endpoint).
+if [[ -f "$aquacrop_root/.env.local" ]]; then
+    # shellcheck disable=SC1091
+    source "$aquacrop_root/.env.local"
+fi
+
+source "$tools_dir/cpu-env.sh"
 exec "$AQUACROP_PYTHON" "$aquacrop_root/tools/workflow.py" delegate-local "$@"

@@ -5,3 +5,4 @@ __pycache__/
 pytest-of-root/
 build/
 .sequence3/
+.env.local

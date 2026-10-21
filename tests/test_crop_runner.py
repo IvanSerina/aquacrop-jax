@@ -6,11 +6,37 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from aquacrop_jax.crop_runner import run_crop_stage, simulate_project
+from aquacrop_jax.crop_runner import _crop_parameter, run_crop_stage, simulate_project
 from aquacrop_jax.legacy import Project, read_project
+from aquacrop_jax.legacy import read_annotated_values
 from aquacrop_jax.outputs import compare_trace_to_daily
 
 TESTCASE = Path(__file__).parents[2] / 'aquacrop-fortran/testcase'
+
+
+def test_calendar_crop_uses_fortran_co2_record_as_sink_strength_alias():
+    crop = read_annotated_values(TESTCASE / 'SIMUL/DEFAULT.CRO')
+    assert _crop_parameter(crop, 'Sink strength') == 100.0
+
+
+def test_sink_strength_still_requires_an_explicit_crop_record():
+    with pytest.raises(ValueError, match='Missing crop parameter: Sink strength'):
+        _crop_parameter({}, 'Sink strength')
+
+
+def test_calendar_default_crop_reaches_coupled_runner(tmp_path):
+    project_path = TESTCASE / 'LIST/Ottawa.PRM'
+    original = read_project(project_path).runs[0]
+    crop_ref = next(ref for ref in original.files if ref.role == 'Crop (CRO)')
+    files = tuple(replace(ref, name='DEFAULT.CRO', directory='../SIMUL')
+                  if ref is crop_ref else ref for ref in original.files)
+    run = replace(original, simulation_last_day=original.simulation_first_day + 4,
+                  crop_last_day=original.crop_first_day + 4, files=files)
+    project = Project('calendar crop alias', 7.3, (run,))
+    result, = simulate_project(project, project_path)
+    assert len(result.columns['daynr']) == 5
+    assert np.all(np.isfinite(result.columns['biomass']))
+    np.testing.assert_allclose(result.columns['canopy'], [0., 0., 0., 0., 0.])
 
 
 def test_ottawa_integrated_trace_covers_all_runs_and_balances(tmp_path):

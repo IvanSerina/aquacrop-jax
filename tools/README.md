@@ -40,8 +40,12 @@ preesistenti non tracciati. `.sequence3/` è esclusa da Git.
 
 ## Delega locale
 
+La configurazione predefinita locale è in `.env.local` (non tracciato): usa
+Ollama sul loopback con `aquacrop-coder-14b:latest`, adatto alle analisi brevi
+e ai task meccanici. Per cambiare modello modifica `AQUACROP_LOCAL_MODEL` con
+il nome esatto restituito da `ollama list`; il wrapper non scarica modelli.
+
 ```bash
-export AQUACROP_LOCAL_MODEL='nome-esatto-del-modello-gia-installato'
 tools/delegate-local 'Unità: mappare il ramo HI per cereali e tuberi. \
 Routine Fortran: LoadCrop e HarvestIndexDay. File ammessi: quelli allegati. \
 Test richiesti: nessuna esecuzione, indicare solo le fixture mancanti. \
