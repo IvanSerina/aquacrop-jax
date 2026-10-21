@@ -93,3 +93,14 @@ def test_original_seeded_canopy_fixture_is_reproducible(tmp_path):
         '--output', str(output)], capture_output=True, text=True)
     assert native.returncode == 0, native.stderr
     assert json.loads(output.read_text()) == FIXTURE
+
+
+def test_terminated_crop_keeps_actual_cover_on_the_initial_previous_cover_day():
+    water = jnp.asarray([30., 30., 10.])
+    stopped, _ = jax.jit(day_step)(initial(True, False, .0004, 40., 40., no_more=True),
+                                   101, 5., water)
+    assert float(stopped.canopy.canopy.cover) == .0004
+    assert bool(stopped.canopy.senescence.no_more_crop)
+    active, _ = jax.jit(day_step)(initial(True, False, .0004, 40., 40.), 101, 5., water)
+    assert float(active.canopy.canopy.cover) > .05
+    assert not bool(active.canopy.senescence.no_more_crop)

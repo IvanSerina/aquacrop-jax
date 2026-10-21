@@ -26,6 +26,9 @@ def generate(output):
              ([101, 100, 120, 1, 0, 0, 40., 40., .1, 30., 10., 25, 1, 5.], [.07, 101])]
     rows = [(main, extra + [0]) for main, extra in rows]
     rows.append(([102, 100, 120, 1, 1, 0, 40., 40., .3, 30., 10., 25, 1, 5.], [.07, 99, 1]))
+    # On the initial-CC day, native CCiPrev changes but CCiActual is retained
+    # when BUDGET skips the terminated crop. They are distinct native fields.
+    rows.append(([101, 100, 120, 1, 0, 0, 40., 40., .3, 30., 10., 25, 1, 5.], [.0004, 99, 1]))
     run_source = (REFERENCE / 'run.f90').read_text()
     seeded = run_source.split('    else\n        ! sown or transplanted\n', 1)[1]
     clock = seeded.split('        ! CC initial', 1)[0]

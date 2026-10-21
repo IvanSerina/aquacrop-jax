@@ -46,7 +46,11 @@ def begin_seeded_crop_day(state, day_number, daily_gdd, crop_first_day,
     state = _with_clock(state, clock)
     day, first, start, emergence = [jnp.asarray(v, jnp.int32) for v in
         (day_number, crop_first_day, simulation_first_day, emergence_day)]
-    initialize_previous = (day == first + emergence) & (day > start)
+    # Native CCiPrev resets temporarily even for NoMoreCrop, but BUDGET then
+    # skips canopy and retains the separate CCiActual. This compact state
+    # stores one cover, so preserve it when that temporary reset is unused.
+    initialize_previous = ((day == first + emergence) & (day > start) &
+                           ~state.canopy.senescence.no_more_crop)
     previous = jnp.where(initialize_previous, jnp.asarray(initial_cover, jnp.float64),
                          state.canopy.canopy.cover)
     return state._replace(canopy=state.canopy._replace(
